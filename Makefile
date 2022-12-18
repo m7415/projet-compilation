@@ -38,7 +38,7 @@ LDLIBS=-lfl
 # début de la magie
 
 SRC:=$(wildcard $(SRCDIR)/*.c)
-SRC_WO_TEST:=$(filter-out $(exec_tests).c, $(SRC))
+SRC_WO_TEST:=$(filter-out $(SRCDIR)/$(exec_tests).c, $(SRC))
 # SRC_TEST := $(wildcard $(TESTDIR)/*.c)
 
 INCLUDES:=$(wildcard $(INCLUDEDIR)/*.h) $(bisonfile).tab.h
@@ -50,6 +50,7 @@ INCLUDEARG:=$(foreach arg,$(INCLUDEDIR),-I$(arg)) -I$(INCLUDEDIR)
 OBJECTS_WO_TEST:=$(SRC_WO_TEST:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
 OBJECTS_WO_TEST:=$(filter-out $(OBJDIR)/$(bisonfile).tab.o, $(OBJECTS_WO_TEST))
 OBJECTS_WO_TEST:=$(filter-out $(OBJDIR)/$(flexfile).yy.o, $(OBJECTS_WO_TEST))
+OBJECTS_WO_TEST:=$(filter-out $(OBJDIR)/$(exec).o, $(OBJECTS_WO_TEST))
 # OBJECTS_TEST := $(SRC_TEST:$(TESTDIR)/%.c=$(OBJDIR)/%.o)
 
 OBJECT_BISON:=$(OBJDIR)/$(bisonfile).tab.o
@@ -57,7 +58,7 @@ OBJECT_FLEX:=$(OBJDIR)/$(flexfile).yy.o
 
 HEADER_BISON:=$(bisonfile).tab.h
 
-main: $(OBJECT_BISON) $(OBJECT_FLEX) $(OBJECTS) $(exec).c
+main: $(OBJECT_BISON) $(OBJECT_FLEX) $(OBJECTS_WO_TEST) $(exec).c
 	gcc $(ARGS) $^ $(LDLIBS) -o $@
 
 
@@ -85,9 +86,8 @@ clean:
 .PHONY: test
 test: 
 	@echo "INCLUDES (local): $(INCLUDES)"
-	@echo "INCLUDEARG      : $(INCLUDEARG)"
-	@echo "LIBARG          : $(LIBARG)"
-	@echo "SOURCES         : $(SRC)"
-	@echo "SOURCES_WO_MAIN : $(SRC_WO_MAIN)"
+	@echo "SRC_WO_TEST     : $(SRC_WO_TEST)"
+	@echo "OBJECTS_WO_TEST : $(OBJECTS_WO_TEST)"
 	@echo "OBJECTS         : $(OBJECTS)"
-	@echo "OBJECTS_WO_MAIN : $(OBJECTS_WO_MAIN)"
+	@echo "OBJECT_FLEX     : $(OBJECT_FLEX)"
+	@echo "OBJECT_BISON    : $(OBJECT_BISON)"
