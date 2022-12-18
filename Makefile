@@ -1,47 +1,93 @@
-# Définir les cibles
-EXE = mon_programme
-TEST_EXE = mon_programme_tests
+# nom de l'exécutable du compilateur
+# rq : le main doit etre dans $(exec).c
+exec=main
 
-# Définir les fichiers sources
-SRCS = $(wildcard *.c)
-LEX_SRCS = $(wildcard *.lex)
-YACC_SRCS = $(wildcard *.y)
-OBJS = $(SRCS:.c=.o)
-LEX_OBJS = $(LEX_SRCS:.lex=.lex.o)
-YACC_OBJS = $(YACC_SRCS:.y=.y.o)
+# nom de l'exécutable des tests
+# rq : le main doit etre dans $(exec_tests).c
+exec_tests=main_test
 
-# Définir les options de compilation
-CC = gcc
-CFLAGS = -Wall -Wextra -Werror
-LDFLAGS =
+# fichier bison
+bisonfile=compil
 
-# Définir les cibles de compilation
-all: $(EXE)
+# fichier lex
+flexfile=compil
 
-tests: $(TEST_EXE)
+# dossier pour les tests
+TESTDIR=./tests
 
-# Définir la cible de nettoyage
+# dossier pour mettre les exécutables
+BINDIR=.
+
+# dossier où aller chercher les .h
+INCLUDEDIR=.
+
+# dossier où aller chercher les sources du compilateur
+SRCDIR=.
+
+# dossier où on met les .o
+OBJDIR=./obj
+
+# arguments de gcc
+ARGS=-g -Wall -Wextra
+
+# librairies à linker dans gcc
+LDLIBS=-lfl
+
+
+#--------------------------------------------------------------------
+# début de la magie
+
+SRC:=$(wildcard $(SRCDIR)/*.c)
+SRC_WO_TEST:=$(filter-out $(exec_tests).c, $(SRC))
+# SRC_TEST := $(wildcard $(TESTDIR)/*.c)
+
+INCLUDES:=$(wildcard $(INCLUDEDIR)/*.h) $(bisonfile).tab.h
+# INCLUDES_TEST := $(wildcar $(TESTDIR)/*.h)
+
+INCLUDEARG:=$(foreach arg,$(INCLUDEDIR),-I$(arg)) -I$(INCLUDEDIR)
+# INCLUDEARG_TEST := -I$(TESTDIR)
+
+OBJECTS_WO_TEST:=$(SRC_WO_TEST:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
+OBJECTS_WO_TEST:=$(filter-out $(OBJDIR)/$(bisonfile).tab.o, $(OBJECTS_WO_TEST))
+OBJECTS_WO_TEST:=$(filter-out $(OBJDIR)/$(flexfile).yy.o, $(OBJECTS_WO_TEST))
+# OBJECTS_TEST := $(SRC_TEST:$(TESTDIR)/%.c=$(OBJDIR)/%.o)
+
+OBJECT_BISON:=$(OBJDIR)/$(bisonfile).tab.o
+OBJECT_FLEX:=$(OBJDIR)/$(flexfile).yy.o
+
+HEADER_BISON:=$(bisonfile).tab.h
+
+main: $(OBJECT_BISON) $(OBJECT_FLEX) $(OBJECTS) $(exec).c
+	gcc $(ARGS) $^ $(LDLIBS) -o $@
+
+
+$(OBJECT_BISON): $(bisonfile).y
+	bison -d $(bisonfile).y
+	gcc -o $@ -c $(bisonfile).tab.c $(ARGS)
+
+
+$(OBJECT_FLEX): $(flexfile).lex $(HEADER_BISON)
+	flex -o $(flexfile).yy.c $<
+	gcc -o $@ -c $(flexfile).yy.c $(ARGS)
+
+
+$(OBJECTS_WO_TEST): $(OBJDIR)/%.o: $(SRCDIR)/%.c
+	@mkdir -p $(OBJDIR)
+	gcc -o $@ -c $< $(CFLAGS) $(INCLUDEARG) $(LDLIBS)
+
+
+.PHONY: clean
 clean:
-	rm -f $(EXE) $(TEST_EXE) $(OBJS) $(LEX_OBJS) $(YACC_OBJS)
+	rm -f $(OBJDIR)/* *.yy.* *.tab.* $(exec) $(exec_tests)
 
-# Définir les règles de compilation
-$(EXE): $(OBJS) $(LEX_OBJS) $(YACC_OBJS)
-	$(CC) $(LDFLAGS) $^ -o $@
 
-$(TEST_EXE): $(OBJS) $(LEX_OBJS) $(YACC_OBJS)
-	$(CC) $(LDFLAGS) $^ -o $@
 
-%.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
-
-%.lex.o: %.lex.c
-	$(CC) $(CFLAGS) -c $< -o $@
-
-%.y.o: %.y.c
-	$(CC) $(CFLAGS) -c $< -o $@
-
-%.lex.c: %.lex
-	flex -o $@ $<
-
-%.y.c: %.y
-	bison -d -o $@ $<
+.PHONY: test
+test: 
+	@echo "INCLUDES (local): $(INCLUDES)"
+	@echo "INCLUDEARG      : $(INCLUDEARG)"
+	@echo "LIBARG          : $(LIBARG)"
+	@echo "SOURCES         : $(SRC)"
+	@echo "SOURCES_WO_MAIN : $(SRC_WO_MAIN)"
+	@echo "OBJECTS         : $(OBJECTS)"
+	@echo "OBJECTS_WO_MAIN : $(OBJECTS_WO_MAIN)"

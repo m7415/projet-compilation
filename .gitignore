@@ -1,3 +1,10 @@
 *.o
-mon_programme
-mon_programme_tests
+obj/*
+obj
+main
+main_tests
+projet.pdf
+*.s
+*.tab.*
+*.tab.*
+*.yy.*
