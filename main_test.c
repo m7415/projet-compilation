@@ -6,7 +6,7 @@
 #include "./tests/lexical_test.h"
 #include "./tests/syntax_test.h"
 
-// gcc -g -Wall -Wextra ./obj/compil.tab.o main_test.c ./tests/lexical_test.c ./tests/syntax_test.c -o main_test
+// gcc -g -Wall -Wextra ./obj/compil.tab.o ./tests/lexical_test.c ./tests/syntax_test.c main_test.c -o main_tests
 
 
 // Définir une structure pour enregistrer les résultats de chaque test
