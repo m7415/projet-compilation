@@ -3,5 +3,4 @@
 
 int syntax_test();
 
-
 #endif

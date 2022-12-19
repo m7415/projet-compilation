@@ -3,6 +3,8 @@
 #include <assert.h>
 #include <string.h>
 
+#include "lexical_test.h"
+
 // Inclure les en-têtes générés par Flex pour utiliser les fonctions de l'analyseur lexical
 #include "../compil.tab.h"
 #include "../compil.yy.c"
@@ -10,8 +12,6 @@
 // ============================================
 
 int lexical_test() {
-  // Initialiser l'analyseur lexical en utilisant la fonction générée par Flex
-  yylex_init();
 
   // Définir un tableau de chaînes de test à analyser
   char* test_cases[] = {
@@ -64,7 +64,7 @@ int lexical_test() {
   };
 
   // Pour chaque chaîne de test
-  for (int i = 0; i < sizeof(test_cases) / sizeof(char*); i++) {
+  for (long unsigned int i = 0; i < sizeof(test_cases) / sizeof(char*); i++) {
     // Définir un pointeur vers la chaîne courante
     char* str = test_cases[i];
 

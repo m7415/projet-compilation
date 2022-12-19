@@ -6,6 +6,8 @@
 #include "./tests/lexical_test.h"
 #include "./tests/syntax_test.h"
 
+// gcc -g -Wall -Wextra ./obj/compil.tab.o main_test.c ./tests/lexical_test.c ./tests/syntax_test.c -o main_test
+
 
 // Définir une structure pour enregistrer les résultats de chaque test
 typedef struct test_result {
@@ -26,8 +28,8 @@ void test_callback(char* test_name, int passed) {
 
 int main() {
   // Exécuter tous les tests
-  lexical_test(test_callback);
-  syntax_test(test_callback);
+  lexical_test();
+  syntax_test();
 
   // Afficher les résultats de tous les tests
   printf("Rapport de test:\n");

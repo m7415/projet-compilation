@@ -2,36 +2,36 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#include "syntax_test.h"
+
 // Inclure les en-têtes générés par Bison pour utiliser les fonctions de l'analyseur syntaxique
 #include "../compil.tab.h"
 
+extern int yyparse(void);
+extern FILE *yyin;
+
 int syntax_test() {
-  // Initialiser l'analyseur syntaxique en utilisant la fonction générée par Bison
-  yyparse_init();
 
-  // Définir un tableau de chaînes de test à analyser
-  char* test_cases[] = {""};
-
-  // Pour chaque chaîne de test, utiliser l'analyseur syntaxique pour analyser la chaîne et vérifier que le résultat renvoyé est celui attendu en utilisant la macro `assert`:
-  for (int i = 0; i < sizeof(test_cases) / sizeof(char*); i++) {
-    // Définir un pointeur vers la chaîne courante
-    char* str = test_cases[i];
-
-    yy_scan_string(str);
-
-    // Utiliser l'analyseur syntaxique pour analyser la chaîne
-    int result = yyparse();
-
-    // Check the result of the parse
-    if (result == 0) {
-      printf("Parse successful!\n");
-    } else {
-      printf("Parse failed.\n");
-    }
+  // Ouvrir le fichier de test
+  FILE *input_file = fopen("./tests/test1.txt", "r");
+  if (input_file == NULL) {
+    fprintf(stderr, "Error: unable to open input file test1.txt\n");
+    return 1;
   }
 
-  // Nettoyer l'analyseur syntaxique
-  yyparse_destroy();
+  yyin = input_file;
 
-  return 0;
+  // Utiliser l'analyseur syntaxique pour analyser la chaîne
+  int result = yyparse();
+
+  // Check the result of the parse
+  if (result == 0) {
+    printf("Parse successful!\n");
+  } else {
+    printf("Parse failed.\n");
+  }
+
+  fclose(input_file);
+
+  return result;
 }
