@@ -27,9 +27,21 @@ void test_callback(char* test_name, int passed) {
 }
 
 int main() {
+  printf("Lancement des tests :\n");
   // Exécuter tous les tests
-  lexical_test();
-  syntax_test();
+  printf("Test 1 : analyseur lexical\n");
+  if(lexical_test() == 0){
+    printf("Passed !\n");
+  }else{
+    //
+  }
+
+  printf("Test 2 : analyseur syntaxique\n");
+  if(syntax_test() == 0){
+    printf("Passed !\n");
+  }else{
+    //
+  }
 
   // Afficher les résultats de tous les tests
   printf("Rapport de test:\n");
