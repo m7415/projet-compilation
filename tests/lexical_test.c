@@ -6,8 +6,11 @@
 #include "lexical_test.h"
 
 // Inclure les en-têtes générés par Flex pour utiliser les fonctions de l'analyseur lexical
-#include "../compil.tab.h"
-#include "../compil.yy.c"
+#include "compil.tab.h"
+#include "compil.yy.h"
+
+// extern YY_BUFFER_STATE;
+// extern YY_BUFFER_STATE yy_scan_string(char* str);
 
 // ============================================
 

@@ -5,7 +5,8 @@
 #include "syntax_test.h"
 
 // Inclure les en-têtes générés par Bison pour utiliser les fonctions de l'analyseur syntaxique
-#include "../compil.tab.h"
+#include "compil.tab.h"
+
 
 #define NB_TESTS 2
 #define MAX_BUFFER_SIZE 1024

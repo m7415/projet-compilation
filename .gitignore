@@ -8,3 +8,9 @@ projet.pdf
 *.tab.*
 *.tab.*
 *.yy.*
+generated-src/*
+generated-src
+bin/*
+bin
+.vscode/*
+.vscode
