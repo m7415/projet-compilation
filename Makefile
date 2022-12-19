@@ -95,7 +95,8 @@ clean:
 $(OBJECT_BISON): $(SRCDIR)/$(bisonfile).y
 	@mkdir -p $(OBJDIR)
 	@mkdir -p $(GENERATEDSRCDIR)
-	bison -o $(SOURCE_BISON) -H$(HEADER_BISON) -d $<
+	@# bison -o $(SOURCE_BISON) -H$(HEADER_BISON) -d $<
+	bison -o $(SOURCE_BISON) -d $<
 	gcc -o $@ -c $(SOURCE_BISON) $(ARGS)
 
 
