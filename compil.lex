@@ -20,6 +20,7 @@ while   { return KW_WHILE   ;}
 until   { return KW_UNTIL   ;}
 case    { return KW_CASE    ;}
 esac    { return KW_ESAC    ;}
+echo    { return KW_ECHO    ;}
 read    { return KW_READ    ;}
 return  { return KW_RETURN  ;}
 exit    { return KW_EXIT    ;}

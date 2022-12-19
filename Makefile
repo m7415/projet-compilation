@@ -39,19 +39,19 @@ LDLIBS=-lfl
 
 SRC:=$(wildcard $(SRCDIR)/*.c)
 SRC_WO_TEST:=$(filter-out $(SRCDIR)/$(exec_tests).c, $(SRC))
-# SRC_TEST := $(wildcard $(TESTDIR)/*.c)
+SRC_TEST := $(wildcard $(TESTDIR)/*.c)
 
 INCLUDES:=$(wildcard $(INCLUDEDIR)/*.h) $(bisonfile).tab.h
-# INCLUDES_TEST := $(wildcar $(TESTDIR)/*.h)
+INCLUDES_TEST := $(wildcar $(TESTDIR)/*.h)
 
 INCLUDEARG:=$(foreach arg,$(INCLUDEDIR),-I$(arg)) -I$(INCLUDEDIR)
-# INCLUDEARG_TEST := -I$(TESTDIR)
+INCLUDEARG_TEST := -I$(TESTDIR)
 
 OBJECTS_WO_TEST:=$(SRC_WO_TEST:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
 OBJECTS_WO_TEST:=$(filter-out $(OBJDIR)/$(bisonfile).tab.o, $(OBJECTS_WO_TEST))
 OBJECTS_WO_TEST:=$(filter-out $(OBJDIR)/$(flexfile).yy.o, $(OBJECTS_WO_TEST))
 OBJECTS_WO_TEST:=$(filter-out $(OBJDIR)/$(exec).o, $(OBJECTS_WO_TEST))
-# OBJECTS_TEST := $(SRC_TEST:$(TESTDIR)/%.c=$(OBJDIR)/%.o)
+OBJECTS_TEST := $(SRC_TEST:$(TESTDIR)/%.c=$(OBJDIR)/%.o)
 
 OBJECT_BISON:=$(OBJDIR)/$(bisonfile).tab.o
 OBJECT_FLEX:=$(OBJDIR)/$(flexfile).yy.o
