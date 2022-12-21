@@ -75,14 +75,14 @@ GENERATED_SOURCE:=$(HEADER_BISON) $(SOURCE_BISON) $(SOURCE_FLEX)
 
 $(BINDIR)/$(exec): $(OBJECT_BISON) $(OBJECT_FLEX) $(OBJECTS_WO_TEST) $(MAIN_COMPIL_C)
 	@mkdir -p $(BINDIR)
-	gcc -o $@  $^ $(ARGS) $(LDLIBS) 
+	gcc -o $@  $^ -I$(INCLUDEDIR) $(ARGS) $(LDLIBS) 
 
 
 # on demande juste les .o du compilateur
 .PHONY: tests
 tests: $(OBJECT_BISON) $(OBJECT_FLEX) $(OBJECTS_WO_TEST) $(OBJECTS_TEST) $(MAIN_TESTS_C)
 	@mkdir -p $(BINDIR)
-	gcc -o $(BINDIR)/$(exec_tests) $^ $(ARGS) $(LDLIBS) -I.
+	gcc -o $(BINDIR)/$(exec_tests) $^ -I$(INCLUDEDIR) -I. $(ARGS) $(LDLIBS)
 
 
 .PHONY: clean
@@ -113,12 +113,12 @@ $(SOURCE_FLEX): $(OBJECT_FLEX)
 
 $(OBJECTS_WO_TEST): $(OBJDIR)/%.o: $(SRCDIR)/%.c $(GENERATED_SOURCE)
 	@mkdir -p $(OBJDIR)
-	gcc -o $@ -c $< $(ARGS) $(LDLIBS)
+	gcc -o $@ -c $< -I$(INCLUDEDIR) $(ARGS) $(LDLIBS)
 
 
 $(OBJECTS_TEST): $(OBJDIR)/%.o: $(TESTDIR)/%.c $(GENERATED_SOURCE)
 	@mkdir -p $(OBJDIR)
-	gcc -o $@ -c $< $(ARGS) $(LDLIBS) -I$(GENERATEDSRCDIR)
+	gcc -o $@ -c $< -I$(GENERATEDSRCDIR) -I$(INCLUDEDIR) $(ARGS) $(LDLIBS) 
 
 
 
