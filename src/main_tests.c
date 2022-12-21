@@ -5,6 +5,7 @@
 // Inclure les en-têtes de tous les tests
 #include "./tests/lexical_test.h"
 #include "./tests/syntax_test.h"
+#include "./tests/quads_test.h"
 
 // gcc -g -Wall -Wextra ./obj/compil.tab.o ./tests/lexical_test.c ./tests/syntax_test.c main_test.c -o main_tests
 
@@ -38,6 +39,13 @@ int main() {
 
   printf("Test 2 : analyseur syntaxique\n");
   if(syntax_test() == 0){
+    printf("Passed !\n");
+  }else{
+    //
+  }
+
+  printf("Test 3 : quads (bidon, à suppr, mais pour tester le makefile en fait)\n");
+  if(quads_test() == 0){
     printf("Passed !\n");
   }else{
     //
