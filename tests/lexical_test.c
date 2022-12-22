@@ -38,7 +38,27 @@ int lexical_test() {
     "fi",
     "declare",
     "test",
-    "expr"
+    "expr",
+    "\"une chaine avec \\\"\"",
+    "\'une chaine avec \\\'\'",
+    "\"chaine avec char spéciaux : \n \t ; * µ\"",
+    "un_identifier000",
+    "0_un_mot",
+    "mot,é",
+    "erreu$r", // renvois l'identifier "erreu", voir si c'est correct
+    "+",
+    "-",
+    "*",
+    "/",
+    "%%",
+    "${var}",
+    "$?",
+    "$*",
+    "$0", // lexicalement bon, syntaxiquement faux
+    "$1",
+    "$102",
+    "${tab[*]}",
+    "${tab[21]}"
   };
 
   // Définir un tableau de tokens attendus pour chaque chaîne de test
@@ -64,6 +84,26 @@ int lexical_test() {
     KW_DECLARE,
     KW_TEST,
     KW_EXPR,
+    STRING_DOUBLE_QUOTE,
+    STRING_SINGLE_QUOTE,
+    STRING_DOUBLE_QUOTE,
+    IDENTIFIER,
+    MOT,
+    MOT,
+    IDENTIFIER,
+    PLUS_OU_MOINS,
+    PLUS_OU_MOINS,
+    FOIS_DIV_MOD,
+    FOIS_DIV_MOD,
+    FOIS_DIV_MOD,
+    ACCES_VARIABLE,
+    LAST_FUNC_STATUS,
+    ACCES_LISTE_ARG,
+    ACCES_ARG,
+    ACCES_ARG,
+    ACCES_ARG,
+    ACCES_LISTE_TABLEAU,
+    ACCES_ELEM_TABLEAU
   };
 
   // Pour chaque chaîne de test
@@ -72,9 +112,10 @@ int lexical_test() {
     char* str = test_cases[i];
 
     YY_BUFFER_STATE buffer = yy_scan_string(str);
-
+    // printf("testing \"%s\" ", str);
     // Utiliser l'analyseur lexical pour analyser la chaîne
     int token = yylex();
+    // printf("\n");
 
     // Vérifier que le token renvoyé par l'analyseur est celui attendu
     assert(token == expected_tokens[i]);

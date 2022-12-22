@@ -8,6 +8,8 @@
 %option nounput
 %option noyywrap
 
+IDENT [a-zA-Z_][a-zA-Z0-9_]*
+
 %%
 
 if      { return KW_IF      ;}
@@ -39,30 +41,23 @@ expr    { return KW_EXPR    ;}
 
 \"([^\"\\]|\\.)*\" {
     // string entre ""
+    printf("string double quote (%s)\n", yytext);
     return STRING_DOUBLE_QUOTE;
 }
 \'([^\'\\]|\\.)*\' {
     // string entre '' (je vois pas comment gérer les " et ' en meme temps)
+    printf("string single quote (%s)\n", yytext);
     return STRING_SINGLE_QUOTE;
 }
 
-
-[+-]?[0-9]+ {
-    // yylval.number = atoi(yytext);
-    return NUMBER;
-}
-
+"+"|"-" { return PLUS_OU_MOINS ;}
+"*"|"/"|"%" { return FOIS_DIV_MOD ;}
 "["   { return '[' ;}
 "]"   { return ']' ;}
 "{"   { return '{' ;}
 "}"   { return '}' ;}
 "("   { return '(' ;}
 ")"   { return ')' ;}
-"+"   { return '+' ;}
-"-"   { return '-' ;}
-"*"   { return '*' ;}
-"/"   { return '/' ;}
-"%"   { return '%' ;}
 "$"   { return '$' ;}
 "?"   { return '?' ;}
 ";"   { return ';' ;}
@@ -80,10 +75,64 @@ expr    { return KW_EXPR    ;}
 "-a"  { return LOGIC_AND    ;}
 "-o"  { return LOGIC_OR     ;}
 
-[a-zA-Z][_a-zA-Z0-9] {
-    // TODO revoir ça, et revoir la différence entre un id et un mot (cf grammaire)
+{IDENT} {
+    printf("identifier : (%s)\n", yytext);
     return IDENTIFIER;
 }
+
+[^\;\[\]\(\)\=\!\|\$\*\{\}\-\+\/\\\#\%\n\t[:space:]]* {
+    // cette règle inclus les IDENTIFIER, c'est pourquoi on la met en dessous
+    // cette règle inclu aussi les entiers 
+    // (d'où l'absence d'un symbole terminal "entier" dans la grammaire)
+    printf("Mot : (%s)\n", yytext);
+    return MOT;
+}
+
+\$\{{IDENT}\} {
+    printf("accès variable : ( %s )\n", yytext);
+    return ACCES_VARIABLE;
+}
+
+\$\{{IDENT}\[\*\]\} {
+    printf("accès tout les elems d'un tableau : (%s)\n", yytext);
+    return ACCES_LISTE_TABLEAU;
+}
+
+\$\{{IDENT}\[[0-9]+\]\} {
+    /*
+    CETTE REGLE EST PAS BONNE !!!!!
+    parce que l'index d'un tableau peut etre une expression compliquée, c'est
+    pas forcément une constante...
+    > dans les règles, ${id[<opérande entier>]} devient le terminal ACCES_ELEM_TABLEAU
+    
+    Pour l'instant on peut laisser comme ça, mais
+    dans le futur, il faudrait détécter 
+        > le terminal ${    \
+        > le terminal id     > un seul (nouveau) terminal pour ça ? 
+        > le terminal [     /
+        > <opérance_entier>
+        > le terminal ]
+    */
+
+    // un peu pénible pour récupérer l'index, mais bon
+    printf("accès elem tableau : (%s)\n", yytext);
+    return ACCES_ELEM_TABLEAU;
+}
+
+\$[0-9]+ {
+    printf("accès argument : ( %s )\n", yytext);
+    return ACCES_ARG;
+}
+\$\* {
+    // liste des arguments d'une fonction
+    return ACCES_LISTE_ARG;
+}
+\$\? {
+    // code de retour de la dernière fonction appelée
+    return LAST_FUNC_STATUS;
+}
+
+
 
 [[:space:]] { 
     // le whitespace (sauf \n) => on ignore
