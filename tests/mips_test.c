@@ -5,9 +5,6 @@
 
 #define NB_TESTS 0
 
-extern int yyparse(void);
-extern FILE *yyin;
-
 extern int nextquad;
 
 extern struct quad global_code[1<<16];
@@ -15,7 +12,7 @@ extern struct quad global_code[1<<16];
 int mips_test(){
     printf("YES, I AM !\n");
     char * mips_code = malloc(MAX_PROG_SIZE * sizeof(char));
-    char * namefile = "./tests/test2.txt";
+    char * namefile = "./tests/test0.txt";
 
     yyin = fopen(namefile, "r");
     if (yyin == NULL) {
