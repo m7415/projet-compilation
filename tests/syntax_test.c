@@ -33,6 +33,7 @@ int syntax_test() {
 
     // Utiliser l'analyseur syntaxique pour analyser la chaîne
     int result = yyparse();
+    yyrestart(yyin);
 
     // Check the result of the parse
     if (result == 0) {

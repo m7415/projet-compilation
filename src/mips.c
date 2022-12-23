@@ -7,6 +7,10 @@ char* quadop_to_mips(struct quadop qo) {
         case QO_CST:
             sprintf(mips, "$%d", qo.cst);
             break;
+        case QO_CST_STRING:
+            sprintf(mips, "Chaine");
+            // TO FILL
+            break;
         case QO_IDENT:
             sprintf(mips, "%s", qo.ident);
             break;
@@ -19,11 +23,14 @@ char* quadop_to_mips(struct quadop qo) {
     }
     return mips;
 }
-
+// { Q_IFEQ, Q_IFDIFF, Q_EXIT }
 // Fonction de traduction de quad en code assembleur MIPS
 char* quad_to_mips(struct quad q) {
     char *  mips = malloc(MAX_PROG_SIZE * sizeof(char));
     switch (q.kind) {
+        case Q_ECHO:
+            sprintf(mips, "la $a0, %s\nli $v0, 4\n syscall", quadop_to_mips(q.op1));
+            break;
         case Q_IFEQ:
             sprintf(mips, "BEQ %s, %s, %s",
                      quadop_to_mips(q.op1), quadop_to_mips(q.op2), quadop_to_mips(q.res));
@@ -48,6 +55,9 @@ char* quad_to_mips(struct quad q) {
             break;
         case Q_SET:
             sprintf(mips, "MOVE %s, %s", quadop_to_mips(q.op1), quadop_to_mips(q.res));
+            break;
+        case Q_EXIT:
+            sprintf(mips,"EXIT\n");
             break;
         default:
             sprintf(mips, "UNKNOWN");
