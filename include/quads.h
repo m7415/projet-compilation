@@ -9,12 +9,10 @@
 #define MAX_IDENT_SIZE 32 // 32 caractères pour un identificateur (y compris le \0 final)
 #define MAX_STRING_SIZE 1024 // taille des chaines jsp
 
+enum quadop_kind { QO_CST, QO_CST_STRING, QO_IDENT, QO_ADDR, QO_UNKNOWN };
+
 struct quadop {
-    enum /*quadop_kind*/ {QO_CST,
-                          QO_CST_STRING,
-                          QO_IDENT,
-                          QO_ADDR,
-                          QO_UNKNOWN} kind;
+    enum quadop_kind kind;
     union {
         int cst;
         char ident[MAX_IDENT_SIZE];
@@ -23,19 +21,10 @@ struct quadop {
     }; // union anonyme
 };
 
+enum quad_kind { Q_IFEQ, Q_IFDIFF, Q_GOTO, Q_GOTO_UNKNOWN, Q_BIDON, Q_BIDON2, Q_SET, Q_EXIT, Q_ECHO };
 
 struct quad {
-    enum {
-        Q_IFEQ,
-        Q_IFDIFF,
-        Q_GOTO,
-        Q_GOTO_UNKNOWN,
-        Q_BIDON,
-        Q_BIDON2,
-        Q_SET,
-        Q_EXIT,
-        Q_ECHO
-    } kind;
+    enum quad_kind kind;
     struct quadop op1, op2, res;
 };
 
@@ -57,6 +46,5 @@ struct quad quad_bidon2(int v);
 struct quad quad_set(char * id, struct quadop val);
 struct quad quad_exit(int v);
 struct quad quad_echo(struct quadop val); // un peu fourbe, psk en MIPS ça demande un appel à une primitive
-
 
 #endif
