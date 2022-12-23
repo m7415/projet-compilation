@@ -1,9 +1,9 @@
 #include "mips_test.h"
 
+#include "compil.yy.h"
 #include "compil.tab.h"
 
 #define NB_TESTS 0
-#define MAX_BUFFER_SIZE 1024
 
 extern int yyparse(void);
 extern FILE *yyin;
@@ -13,7 +13,8 @@ extern int nextquad;
 extern struct quad global_code[1<<16];
 
 int mips_test(){
-    char * mips_code = malloc(MAX_BUFFER_SIZE * sizeof(mips_code));
+    printf("YES, I AM !\n");
+    char * mips_code = malloc(MAX_PROG_SIZE * sizeof(char));
     char * namefile = "./tests/test2.txt";
 
     yyin = fopen(namefile, "r");
@@ -22,12 +23,15 @@ int mips_test(){
         return 1;
     }
 
+    int t = yyparse();
+
     for (int i = 0; i < nextquad; i++) {
         char* mips = quad_to_mips(global_code[i]);
-        sprintf(mips_code,mips);
-        sprintf(mips_code,"\n");
+        printf("ZA WARUDO !\n");
+        print_quad(global_code[i]);
+        strcat(mips_code,mips);
     }
-    sprintf(mips_code,"\0");
+    strcat(mips_code,"...\0");
 
     // Affichage du code MIPS
     printf("%s\n", mips_code);

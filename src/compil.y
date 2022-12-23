@@ -128,6 +128,7 @@ liste_instructions
     printf("aaaa 3\n");
     $$.next = $1.next;
 }
+| /*empty*/ {}
 ;
 
 instruction

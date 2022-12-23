@@ -3,8 +3,12 @@
 
 #include <sys/types.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "quads.h"
+
+#define MAX_OP_SIZE 128
+#define MAX_PROG_SIZE 4096
 
 // Fonction de traduction de quadop en code assembleur MIPS
 char* quadop_to_mips(struct quadop qo);
