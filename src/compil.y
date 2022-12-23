@@ -119,7 +119,7 @@ liste_instructions
     list_print($1.next);
     printf("\n$4.next : ");
     list_print($4.next);
-    printf("\n$3 : %lu", $3);
+    printf("\n$3 : %i", $3);
 
     complete($1.next, $3);
     $$.next = $4.next;
