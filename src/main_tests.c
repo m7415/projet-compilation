@@ -37,14 +37,14 @@ int main() {
     //
   }
 
-  printf("Test 2 : analyseur syntaxique\n");
+  printf("\nTest 2 : analyseur syntaxique\n");
   if(syntax_test() == 0){
     printf("Passed !\n");
   }else{
     //
   }
 
-  printf("Test 3 : quads (bidon, à suppr, mais pour tester le makefile en fait)\n");
+  printf("\nTest 3 : quads (bidon, à suppr, mais pour tester le makefile en fait)\n");
   if(quads_test() == 0){
     printf("Passed !\n");
   }else{
@@ -52,7 +52,7 @@ int main() {
   }
 
   // Afficher les résultats de tous les tests
-  printf("Rapport de test:\n");
+  printf("\nRapport de test:\n");
   for (int i = 0; i < test_count; i++) {
     printf("- %s: %s\n", test_results[i].test_name, test_results[i].passed ? "passé" : "échoué");
   }

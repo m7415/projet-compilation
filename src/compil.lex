@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 // #include "sos.h"
+#include "quads.h"
 #include "compil.tab.h"
 %}
 
@@ -41,12 +42,14 @@ expr    { return KW_EXPR    ;}
 
 \"([^\"\\]|\\.)*\" {
     // string entre ""
-    printf("string double quote (%s)\n", yytext);
+    // printf("string double quote (%s)\n", yytext);
+    strncpy(yylval.str, yytext, MAX_STRING_SIZE);
     return STRING_DOUBLE_QUOTE;
 }
 \'([^\'\\]|\\.)*\' {
     // string entre '' (je vois pas comment gérer les " et ' en meme temps)
-    printf("string single quote (%s)\n", yytext);
+    // printf("string single quote (%s)\n", yytext);
+    strncpy(yylval.str, yytext, MAX_STRING_SIZE);
     return STRING_SINGLE_QUOTE;
 }
 
@@ -61,7 +64,7 @@ expr    { return KW_EXPR    ;}
 "$"   { return '$' ;}
 "?"   { return '?' ;}
 ";"   { return ';' ;}
-"="   { return IS_EQ        ;}
+"="   { return '=' ;}
 "!="  { return IS_DIFF      ;}
 "-n"  { return OP_NOT_NULL  ;}
 "-z"  { return OP_NULL      ;}
@@ -76,7 +79,8 @@ expr    { return KW_EXPR    ;}
 "-o"  { return LOGIC_OR     ;}
 
 {IDENT} {
-    printf("identifier : (%s)\n", yytext);
+    // printf("identifier : (%s)\n", yytext);
+    strncpy(yylval.str, yytext, MAX_STRING_SIZE);
     return IDENTIFIER;
 }
 
@@ -84,17 +88,18 @@ expr    { return KW_EXPR    ;}
     // cette règle inclus les IDENTIFIER, c'est pourquoi on la met en dessous
     // cette règle inclu aussi les entiers 
     // (d'où l'absence d'un symbole terminal "entier" dans la grammaire)
-    printf("Mot : (%s)\n", yytext);
+    // printf("Mot : (%s)\n", yytext);
+    strncpy(yylval.str, yytext, MAX_STRING_SIZE);
     return MOT;
 }
 
 \$\{{IDENT}\} {
-    printf("accès variable : ( %s )\n", yytext);
+    // printf("accès variable : ( %s )\n", yytext);
     return ACCES_VARIABLE;
 }
 
 \$\{{IDENT}\[\*\]\} {
-    printf("accès tout les elems d'un tableau : (%s)\n", yytext);
+    // printf("accès tout les elems d'un tableau : (%s)\n", yytext);
     return ACCES_LISTE_TABLEAU;
 }
 
@@ -115,12 +120,12 @@ expr    { return KW_EXPR    ;}
     */
 
     // un peu pénible pour récupérer l'index, mais bon
-    printf("accès elem tableau : (%s)\n", yytext);
+    // printf("accès elem tableau : (%s)\n", yytext);
     return ACCES_ELEM_TABLEAU;
 }
 
 \$[0-9]+ {
-    printf("accès argument : ( %s )\n", yytext);
+    // printf("accès argument : ( %s )\n", yytext);
     return ACCES_ARG;
 }
 \$\* {

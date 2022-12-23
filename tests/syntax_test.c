@@ -3,12 +3,12 @@
 #include <assert.h>
 
 #include "syntax_test.h"
-
+#include "quads.h"
 // Inclure les en-têtes générés par Bison pour utiliser les fonctions de l'analyseur syntaxique
 #include "compil.tab.h"
 
 
-#define NB_TESTS 2
+#define NB_TESTS 3
 #define MAX_BUFFER_SIZE 1024
 
 extern int yyparse(void);

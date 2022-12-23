@@ -1,7 +1,5 @@
 #include "quads.h"
 
-
-
 void print_quad(struct quad q) {
     if( q.kind == Q_GOTO) {
         printf("GOTO ");
@@ -41,6 +39,14 @@ void print_quad(struct quad q) {
         printf("YYYY ");
         print_quadop(q.op1);
     }
+    else if(q.kind == Q_EXIT) {
+        printf("EXIT ");
+        print_quadop(q.op1);
+    }
+    else if(q.kind == Q_ECHO) {
+        printf("ECHO ");
+        print_quadop(q.op1);
+    }
     else {
         printf("UNRECOGNIZED QUAD");
     }
@@ -63,6 +69,9 @@ void print_quadop(struct quadop op) {
     else if(op.kind == QO_IDENT) {
         printf("%s", op.ident);
     }
+    else if(op.kind == QO_CST_STRING) {
+        printf("%s",op.cst_str);
+    }
     #else
     if(op.kind == QO_CST) {
         printf("<cst>%d", op.cst);
@@ -75,6 +84,9 @@ void print_quadop(struct quadop op) {
     }
     else if(op.kind == QO_IDENT) {
         printf("<ident>%s", op.ident);
+    }
+    else if(op.kind == QO_CST_STRING) {
+        printf("<cst_str>%s",op.cst_str);
     }
     #endif
     else {
@@ -89,6 +101,12 @@ struct quadop quadop_cst(int v) {
     return qo;
 }
 
+struct quadop quadop_cst_string(char * v) {
+    struct quadop qo;
+    qo.kind = QO_CST_STRING;
+    strncpy(qo.cst_str, v, MAX_STRING_SIZE);
+    return qo;
+}
 
 struct quadop quadop_ident(char * id) {
     struct quadop qo;
@@ -160,5 +178,20 @@ struct quad quad_bidon2(int v) {
     struct quad q;
     q.kind = Q_BIDON2;
     q.op1 = quadop_cst(v);
+    return q;
+}
+
+
+struct quad quad_exit(int v) {
+    struct quad q;
+    q.kind = Q_EXIT;
+    q.op1 = quadop_cst(v);
+    return q;
+}
+
+struct quad quad_echo(struct quadop val) {
+    struct quad q;
+    q.kind = Q_ECHO;
+    q.op1 = val;
     return q;
 }

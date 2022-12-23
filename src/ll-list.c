@@ -17,6 +17,32 @@ struct list * list_creer(size_t addr) {
     return newl;
 }
 
+
+// struct list * list_copy(struct list * l) {
+//     // if( l == NULL) {
+//     //     return NULL;
+//     // }
+//     // struct list * newl = list_creer(l->addr);
+//     // return concat()
+//     return NULL; //TODO ?
+// }
+
+
+void list_print(struct list * l) {
+    if( l == NULL ) {
+        printf("empty list");
+        return;
+    }
+    printf("%lu ", l->addr);
+    struct list * next = l->next;
+    while(next != NULL) {
+        printf("%lu ", l->addr);
+        next = next->next;
+    }
+}
+
+
 void list_free(struct list * l) {
     free(l);
 }
+

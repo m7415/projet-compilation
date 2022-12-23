@@ -6,8 +6,10 @@
 #include "lexical_test.h"
 
 // Inclure les en-têtes générés par Flex pour utiliser les fonctions de l'analyseur lexical
+#include "quads.h"
 #include "compil.tab.h"
 #include "compil.yy.h"
+
 
 // extern YY_BUFFER_STATE;
 // extern YY_BUFFER_STATE yy_scan_string(char* str);
@@ -43,6 +45,7 @@ int lexical_test() {
     "\'une chaine avec \\\'\'",
     "\"chaine avec char spéciaux : \n \t ; * µ\"",
     "un_identifier000",
+    "42",
     "0_un_mot",
     "mot,é",
     "erreu$r", // renvois l'identifier "erreu", voir si c'est correct
@@ -88,6 +91,7 @@ int lexical_test() {
     STRING_SINGLE_QUOTE,
     STRING_DOUBLE_QUOTE,
     IDENTIFIER,
+    MOT,
     MOT,
     MOT,
     IDENTIFIER,

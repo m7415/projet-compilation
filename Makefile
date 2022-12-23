@@ -70,12 +70,14 @@ SOURCE_FLEX:=$(GENERATEDSRCDIR)/$(flexfile).yy.c
 
 GENERATED_SOURCE:=$(HEADER_BISON) $(SOURCE_BISON) $(SOURCE_FLEX)
 
+INCLUDEARG:=-I$(INCLUDEDIR) -I. -I$(GENERATEDSRCDIR) -I$(TESTDIR)
+
 #-----------------------------------------------------
 # règles à utiliser
 
 $(BINDIR)/$(exec): $(OBJECT_BISON) $(OBJECT_FLEX) $(OBJECTS_WO_TEST) $(MAIN_COMPIL_C)
 	@mkdir -p $(BINDIR)
-	gcc -o $@  $^ -I$(INCLUDEDIR) $(ARGS) $(LDLIBS) 
+	gcc -o $@  $^ $(INCLUDEARG) $(ARGS) $(LDLIBS) 
 
 
 # on demande juste les .o du compilateur
@@ -83,7 +85,7 @@ $(BINDIR)/$(exec): $(OBJECT_BISON) $(OBJECT_FLEX) $(OBJECTS_WO_TEST) $(MAIN_COMP
 tests: $(OBJECT_BISON) $(OBJECT_FLEX) $(OBJECTS_WO_TEST) $(OBJECTS_TEST) $(MAIN_TESTS_C)
 	@mkdir -p $(BINDIR)
 	gcc -o $(BINDIR)/$(exec_tests) $^ -I$(INCLUDEDIR) -I. $(ARGS) $(LDLIBS)
-
+	$(BINDIR)/$(exec_tests)
 
 .PHONY: clean
 clean:
@@ -97,14 +99,14 @@ $(OBJECT_BISON): $(SRCDIR)/$(bisonfile).y
 	@mkdir -p $(GENERATEDSRCDIR)
 	@# bison -o $(SOURCE_BISON) -H$(HEADER_BISON) -d $<
 	bison -o $(SOURCE_BISON) -d $<
-	gcc -o $@ -c $(SOURCE_BISON) $(ARGS)
+	gcc -o $@ -c $(SOURCE_BISON) -I$(INCLUDEDIR) $(ARGS)
 
 
 $(OBJECT_FLEX): $(SRCDIR)/$(flexfile).lex $(HEADER_BISON)
 	@mkdir -p $(OBJDIR)
 	@mkdir -p $(GENERATEDSRCDIR)
 	flex -o $(SOURCE_FLEX) --header-file=$(HEADER_FLEX) $<
-	gcc -o $@ -c $(SOURCE_FLEX) $(ARGS)
+	gcc -o $@ -c $(SOURCE_FLEX) -I$(INCLUDEDIR) $(ARGS)
 
 $(HEADER_BISON): $(OBJECT_BISON)
 $(SOURCE_BISON): $(OBJECT_BISON)
