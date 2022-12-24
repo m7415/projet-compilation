@@ -85,6 +85,10 @@ void free_ctx_stack(struct ctx_stack * ctx_stack) {
 }
 
 void print_entry(struct entry * e) {
+    if(e == NULL) {
+        printf("faut pas demander de print_entry(NULL) >:(\n");
+        return;
+    }
     switch(e->type) {
         case E_BOOL:
             printf("bool  ");
@@ -139,3 +143,20 @@ void print_ctx_stack(struct ctx_stack * ctx_stack) {
 }
 
 
+struct entry * lookup(struct ctx_stack * ctx_stack, char * name) {
+    if(ctx_stack->head == NULL) {
+        return NULL;
+    }
+    struct stack_interne * next = ctx_stack->head;
+
+    while(next != NULL && next->current != NULL) {
+        for(int i=0; i<next->current->nb_entry; i++) {
+            if( strncmp(name, next->current->entries[i]->name, MAX_IDENT_SIZE) == 0 ) {
+                return next->current->entries[i];
+            }
+        }
+        next = next->next;
+    }
+    return NULL;
+
+}
