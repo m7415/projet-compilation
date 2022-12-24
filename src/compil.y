@@ -111,6 +111,7 @@ int new_temp() {
 %%
 
 programme : liste_instructions {}
+| %empty {}
 ;
 
 liste_instructions
