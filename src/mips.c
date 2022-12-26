@@ -32,14 +32,7 @@ char * new_string(int *numstr) {
     return str;
 }
 
-char * new_label(int *numlab) {
-    char * lab = malloc(MAX_MIPS_ID * sizeof(char));
-    sprintf(lab, "%d", *numlab);
-    *numlab += 1;
-    return lab;
-}
-
-char* handle_quadop(struct quadop qo, FILE * sortie,int *pos_data, int *numstr,int *numlab) {
+char* handle_quadop(struct quadop qo, FILE * sortie,int *pos_data, int *numstr,int *numlab, int* table_label) {
     char * mips = malloc(MAX_OP_SIZE * sizeof(char));
     char *chaine = malloc(MAX_OP_SIZE * sizeof(char));
     char *str;
@@ -49,7 +42,20 @@ char* handle_quadop(struct quadop qo, FILE * sortie,int *pos_data, int *numstr,i
             break;
         case QO_CST_STRING:
             str = new_string(numstr);
-            sprintf(chaine,"%s: .asciiz %s\n",str,qo.cst_str);
+            switch (qo.cst_str[0])
+            {
+            case '\"':
+                sprintf(chaine,"    %s: .asciiz %s\n",str,qo.cst_str);
+                break;
+            case '\'':
+                qo.cst_str[0] = '\"';
+                qo.cst_str[strlen(qo.cst_str)-1] = '\"';
+                sprintf(chaine,"    %s: .asciiz %s\n",str,qo.cst_str);
+                break;
+            default:
+                sprintf(chaine,"    %s: .asciiz \"%s\"\n",str,qo.cst_str);
+                break;
+            }
             shift_write(chaine,pos_data,sortie);
             sprintf(mips, "%s", str);
             break;
@@ -57,7 +63,12 @@ char* handle_quadop(struct quadop qo, FILE * sortie,int *pos_data, int *numstr,i
             sprintf(mips, "%s", qo.ident);
             break;
         case QO_ADDR:
-            sprintf(mips, "ADDR");
+            if (table_label[qo.addr] == -1)
+            {
+                table_label[qo.addr] = *numlab;
+                *numlab += 1;                
+            }
+            sprintf(mips,"_l%d",table_label[qo.addr]);
             break;
         default:
             sprintf(mips, "UNKNOWN");
@@ -67,55 +78,71 @@ char* handle_quadop(struct quadop qo, FILE * sortie,int *pos_data, int *numstr,i
     return mips;
 }
 
-int handle_quad(struct quad q, FILE * sortie,int *pos_data, int *numstr,int *numlab) {
+int handle_quad(int i, struct quad q, FILE * sortie,int *pos_data, int *numstr,int *numlab, int* table_label, int * table_addr) {
+    int ecrit = 0;
     switch (q.kind) {
         case Q_ECHO:
-            fprintf(sortie, "la $a0, %s\nli $v0, 4\nsyscall\n",
-            handle_quadop(q.op1,sortie, pos_data, numstr, numlab));
+            switch (q.op1.kind) {
+                case QO_CST:
+                    ecrit = fprintf(sortie, "   la $a0, %s\n   li $v0, 1\n   syscall\n",
+                    handle_quadop(q.op1,sortie, pos_data, numstr, numlab, table_label));
+                    break;
+                case QO_CST_STRING:
+                    ecrit = fprintf(sortie, "   la $a0, %s\n   li $v0, 4\n   syscall\n",
+                    handle_quadop(q.op1,sortie, pos_data, numstr, numlab, table_label));
+                    break;
+                case QO_IDENT:
+                    /* code */
+                    break;
+                default:
+                    fprintf(stderr,"ERREUR !\n");
+                    break;
+            }
             break;
         case Q_IFEQ:
-            fprintf(sortie, "la $t0,%s\nla $t1,%s\nbeq $t0, $t1, %s\n",
-            handle_quadop(q.op1,sortie, pos_data, numstr, numlab), 
-            handle_quadop(q.op2,sortie, pos_data, numstr, numlab), 
-            handle_quadop(q.res,sortie, pos_data, numstr, numlab));
+            ecrit = fprintf(sortie, "   la $t0,%s\n   la $t1,%s\n   beq $t0, $t1, %s\n",
+            handle_quadop(q.op1,sortie, pos_data, numstr, numlab, table_label), 
+            handle_quadop(q.op2,sortie, pos_data, numstr, numlab, table_label), 
+            handle_quadop(q.res,sortie, pos_data, numstr, numlab, table_label));
             break;
         case Q_IFDIFF:
-            fprintf(sortie, "la $t0,%s\nla $t1,%s\nbne $t0, $t1, %s\n",
-            handle_quadop(q.op1,sortie, pos_data, numstr, numlab), 
-            handle_quadop(q.op2,sortie, pos_data, numstr, numlab), 
-            handle_quadop(q.res,sortie, pos_data, numstr, numlab));
+            ecrit = fprintf(sortie, "   la $t0,%s\n   la $t1,%s\n   bne $t0, $t1, %s\n",
+            handle_quadop(q.op1,sortie, pos_data, numstr, numlab, table_label), 
+            handle_quadop(q.op2,sortie, pos_data, numstr, numlab, table_label), 
+            handle_quadop(q.res,sortie, pos_data, numstr, numlab, table_label));
             break;
         case Q_GOTO:
-            fprintf(sortie, "b %s\n", 
-            handle_quadop(q.res,sortie, pos_data, numstr, numlab));
+            ecrit = fprintf(sortie, "   b %s\n", 
+            handle_quadop(q.res,sortie, pos_data, numstr, numlab, table_label));
             break;
         case Q_GOTO_UNKNOWN:
-            fprintf(sortie, "b UNKNOWN\n");
+            ecrit = fprintf(sortie, "   b UNKNOWN\n");
             break;
         case Q_BIDON:
-            fprintf(sortie, "BIDON %s, %s, %s\n",
-            handle_quadop(q.op1,sortie, pos_data, numstr, numlab), 
-            handle_quadop(q.op2,sortie, pos_data, numstr, numlab), 
-            handle_quadop(q.res,sortie, pos_data, numstr, numlab));
+            ecrit = fprintf(sortie, "   BIDON %s, %s, %s\n",
+            handle_quadop(q.op1,sortie, pos_data, numstr, numlab, table_label), 
+            handle_quadop(q.op2,sortie, pos_data, numstr, numlab, table_label), 
+            handle_quadop(q.res,sortie, pos_data, numstr, numlab, table_label));
             break;
         case Q_BIDON2:
-            fprintf(sortie, "BIDON2 %s, %s, %s\n",
-            handle_quadop(q.op1,sortie, pos_data, numstr, numlab), 
-            handle_quadop(q.op2,sortie, pos_data, numstr, numlab), 
-            handle_quadop(q.res,sortie, pos_data, numstr, numlab));
+            ecrit = fprintf(sortie, "   BIDON2 %s, %s, %s\n",
+            handle_quadop(q.op1,sortie, pos_data, numstr, numlab, table_label), 
+            handle_quadop(q.op2,sortie, pos_data, numstr, numlab, table_label), 
+            handle_quadop(q.res,sortie, pos_data, numstr, numlab, table_label));
             break;
         case Q_SET:
-            fprintf(sortie, "MOVE %s, %s\n", 
-            handle_quadop(q.op1,sortie, pos_data, numstr, numlab), 
-            handle_quadop(q.res,sortie, pos_data, numstr, numlab));
+            ecrit = fprintf(sortie, "   MOVE %s, %s\n", 
+            handle_quadop(q.op1,sortie, pos_data, numstr, numlab, table_label), 
+            handle_quadop(q.res,sortie, pos_data, numstr, numlab, table_label));
             break;
         case Q_EXIT:
-            fprintf(sortie,"jr $ra\n");;
+            ecrit = fprintf(sortie,"    jr $ra\n");;
             break;
         default:
-            fprintf(sortie, "UNKNOWN\n");
+            ecrit = fprintf(sortie, "   UNKNOWN\n");
             break;
     }
+    table_addr[i] = ftell(sortie) - *pos_data - ecrit;
     return 0;
 }
 
@@ -124,6 +151,18 @@ int trad_MIPS(FILE * sortie,struct quad* quad_table, int nextquad /*+ table des 
 
     int numstr = 0;
     int numlab = 0;
+
+    int table_label[nextquad];
+    for (int i = 0; i < nextquad; i++)
+    {
+        table_label[i] = -1;
+    }
+
+    int table_addr[nextquad];
+    for (int i = 0; i < nextquad; i++)
+    {
+        table_addr[i] = 0;
+    }
 
     // Data zone
     pos_data += fprintf(sortie,".data\n");
@@ -136,8 +175,23 @@ int trad_MIPS(FILE * sortie,struct quad* quad_table, int nextquad /*+ table des 
 
     for (int i = 0; i < nextquad; i++)
     {
-        handle_quad(quad_table[i],sortie, &pos_data, &numstr, &numlab);
+        handle_quad(i, quad_table[i],sortie, &pos_data, &numstr, &numlab, table_label, table_addr);
     }
+
+    char *chaine = malloc(MAX_OP_SIZE * sizeof(char));
+    int position = pos_data;
+    for (int i = 0; i < nextquad; i++)
+    {
+        if (table_label[i] != -1)
+        {
+            position += table_addr[i];
+            sprintf(chaine,"_l%d:\n",table_label[i]);
+            shift_write(chaine, &position, sortie);
+            position = position - table_addr[i];
+        }
+    }
+    free(chaine);
+    
     
     //pos_code += fprintf(sortie,"label1:\n");
     //code
