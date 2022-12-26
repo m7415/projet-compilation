@@ -9,7 +9,7 @@
 #include "quads.h"
 #include "mips.h"
 
-#define MAX_INST_SIZE 128
+#define MAX_BUFFER_SIZE 1024
 
 int mips_test();
 

@@ -10,12 +10,23 @@ extern int nextquad;
 extern struct quad global_code[1<<16];
 
 int mips_test(){
-    char * mips_code = calloc(MAX_PROG_SIZE, sizeof(char));
-    char * namefile = "./tests/test0.txt";
+    int i = 0;
 
+    char * namefile = malloc(MAX_BUFFER_SIZE * sizeof(char));
+    sprintf(namefile,"./tests/test%d.txt",i);
+    char * namefile_out = malloc(MAX_BUFFER_SIZE * sizeof(char));
+    sprintf(namefile_out,"./tests/test%d_out.asm",i);
+
+    FILE * sortie = fopen(namefile_out,"w+");
     yyin = fopen(namefile, "r");
+
+    if (sortie == NULL) {
+        fprintf(stderr, "Error: unable to open output file test%d\n",i);
+        return 1;
+    }
+
     if (yyin == NULL) {
-        fprintf(stderr, "Error: unable to open input file test0\n");
+        fprintf(stderr, "Error: unable to open input file test%d\n",i);
         return 1;
     }
 
@@ -26,20 +37,12 @@ int mips_test(){
         printf("FUCK !\n");
         return 1;
     }
-
-    char * mips = malloc(MAX_INST_SIZE * sizeof(char));
-    for (int i = 0; i < nextquad; i++) {
-        sprintf(mips,"%s\n",quad_to_mips(global_code[i]));
-        strcat(mips_code,mips);
-    }
-    strcat(mips_code,"...\0");
+    
+    trad_MIPS(sortie,global_code,nextquad);
 
     // Affichage du code MIPS
-    printf("%s\n", mips_code);
+    //printf("%s\n", mips_code);
 
     fclose(yyin);
-    free(mips_code);
-    free(mips);
-
     return 0;
 }

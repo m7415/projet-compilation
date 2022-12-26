@@ -9,12 +9,18 @@
 
 #define MAX_OP_SIZE 128
 #define MAX_PROG_SIZE 4096
+#define MAX_INST_SIZE 128
+#define MAX_MIPS_ID 32
+
+char * new_string(int *numstr);
+
+char * new_label(int *numlab);
 
 // Fonction de traduction de quadop en code assembleur MIPS
-char* quadop_to_mips(struct quadop qo);
+char* handle_quadop(struct quadop qo, FILE * sortie,int *pos_data,int *pos_code,int *numstr,int *numlab);
 
 // Fonction de traduction de quad en code assembleur MIPS
-char* quad_to_mips(struct quad q);
+int handle_quad(struct quad q, FILE * sortie,int *pos_data,int *pos_code,int *numstr,int *numlab);
 
 
 #endif
