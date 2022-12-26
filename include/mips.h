@@ -17,10 +17,10 @@ char * new_string(int *numstr);
 char * new_label(int *numlab);
 
 // Fonction de traduction de quadop en code assembleur MIPS
-char* handle_quadop(struct quadop qo, FILE * sortie,int *pos_data,int *pos_code,int *numstr,int *numlab);
+char* handle_quadop(struct quadop qo, FILE * sortie,int *pos_data,int *numstr,int *numlab);
 
 // Fonction de traduction de quad en code assembleur MIPS
-int handle_quad(struct quad q, FILE * sortie,int *pos_data,int *pos_code,int *numstr,int *numlab);
+int handle_quad(struct quad q, FILE * sortie,int *pos_data,int *numstr,int *numlab);
 
 
 #endif
