@@ -12,7 +12,37 @@ _s9: .asciiz quoi
 _s10: .asciiz "plus d'idées oskour"
 _s11: .asciiz 'après le if'
 _s12: .asciiz "encore après"
-1
+.text
+.globl main
+main:
+la $a0, _s0
+li $v0, 4
+syscall
+la $a0, _s1
+li $v0, 4
+syscall
+la $t0,_s3
+la $t1,_s2
+beq $t0, $t1, ADDR
+b ADDR
+la $a0, _s4
+li $v0, 4
+syscall
+la $t0,_s6
+la $t1,_s5
+bne $t0, $t1, ADDR
+b ADDR
+la $a0, _s7
+li $v0, 4
+syscall
+la $t0,_s9
+la $t1,_s8
+beq $t0, $t1, ADDR
+b ADDR
+la $a0, _s10
+li $v0, 4
+syscall
+la $a0, _s11
 li $v0, 4
 syscall
 la $a0, _s12

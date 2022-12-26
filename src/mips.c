@@ -1,5 +1,30 @@
 #include "mips.h"
 
+void shift_write(char *chaine, int * position, FILE *fichier) {
+    // R2cupération de la taille du fichier
+    fseek(fichier, 0, SEEK_END);
+    int taille = ftell(fichier);
+
+    // Déplacement à la position spécifiée dans le fichier
+    fseek(fichier, *position, SEEK_SET);
+
+    // Lecture de la suite du fichier dans un buffer
+    char buffer[taille];
+    size_t nb_octets_lus = fread(buffer, sizeof(char), taille, fichier);
+
+    // Écriture de la chaîne de caractères à la position spécifiée dans le fichier
+    fseek(fichier, *position, SEEK_SET);
+    fwrite(chaine, sizeof(char), strlen(chaine), fichier);
+    *position += strlen(chaine);
+
+    // Réécriture de la suite du fichier à la suite de la chaîne de caractères
+    fwrite(buffer, sizeof(char), nb_octets_lus, fichier);
+
+    // Déplacement à la fin du fichier
+    fseek(fichier, 0, SEEK_END);
+}
+
+
 char * new_string(int *numstr) {
     char * str = malloc(MAX_MIPS_ID * sizeof(char));
     sprintf(str, "_s%d", *numstr);
@@ -16,15 +41,16 @@ char * new_label(int *numlab) {
 
 char* handle_quadop(struct quadop qo, FILE * sortie,int *pos_data, int *numstr,int *numlab) {
     char * mips = malloc(MAX_OP_SIZE * sizeof(char));
+    char *chaine = malloc(MAX_OP_SIZE * sizeof(char));
+    char *str;
     switch (qo.kind) {
         case QO_CST:
             sprintf(mips, "%d", qo.cst);
             break;
         case QO_CST_STRING:
-            fseek(sortie,*pos_data,SEEK_SET);
-            char *str = new_string(numstr);
-            *pos_data += fprintf(sortie,"%s: .asciiz %s\n",str,qo.cst_str);
-            fseek(sortie,0,SEEK_END);
+            str = new_string(numstr);
+            sprintf(chaine,"%s: .asciiz %s\n",str,qo.cst_str);
+            shift_write(chaine,pos_data,sortie);
             sprintf(mips, "%s", str);
             break;
         case QO_IDENT:
@@ -37,6 +63,7 @@ char* handle_quadop(struct quadop qo, FILE * sortie,int *pos_data, int *numstr,i
             sprintf(mips, "UNKNOWN");
             break;
     }
+    free(chaine);
     return mips;
 }
 

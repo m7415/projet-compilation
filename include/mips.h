@@ -12,6 +12,8 @@
 #define MAX_INST_SIZE 128
 #define MAX_MIPS_ID 32
 
+void shift_write(char *chaine, int * position, FILE *fichier);
+
 char * new_string(int *numstr);
 
 char * new_label(int *numlab);
