@@ -58,6 +58,7 @@ char* handle_quadop(struct quadop qo, FILE * sortie,int *pos_data, int *numstr,i
             }
             shift_write(chaine,pos_data,sortie);
             sprintf(mips, "%s", str);
+            free(str);
             break;
         case QO_IDENT:
             sprintf(mips, "%s", qo.ident);
@@ -80,16 +81,21 @@ char* handle_quadop(struct quadop qo, FILE * sortie,int *pos_data, int *numstr,i
 
 int handle_quad(int i, struct quad q, FILE * sortie,int *pos_data, int *numstr,int *numlab, int* table_label, int * table_addr) {
     int ecrit = 0;
+    char * temp1;
+    char * temp2;
+    char * temp3;
     switch (q.kind) {
         case Q_ECHO:
             switch (q.op1.kind) {
                 case QO_CST:
-                    ecrit = fprintf(sortie, "   la $a0, %s\n   li $v0, 1\n   syscall\n",
-                    handle_quadop(q.op1,sortie, pos_data, numstr, numlab, table_label));
+                    temp1 = handle_quadop(q.op1,sortie, pos_data, numstr, numlab, table_label);
+                    ecrit = fprintf(sortie, "   la $a0, %s\n   li $v0, 1\n   syscall\n", temp1);
+                    free(temp1);
                     break;
                 case QO_CST_STRING:
-                    ecrit = fprintf(sortie, "   la $a0, %s\n   li $v0, 4\n   syscall\n",
-                    handle_quadop(q.op1,sortie, pos_data, numstr, numlab, table_label));
+                    temp1 = handle_quadop(q.op1,sortie, pos_data, numstr, numlab, table_label);
+                    ecrit = fprintf(sortie, "   la $a0, %s\n   li $v0, 4\n   syscall\n", temp1);
+                    free(temp1);
                     break;
                 case QO_IDENT:
                     /* code */
@@ -100,40 +106,41 @@ int handle_quad(int i, struct quad q, FILE * sortie,int *pos_data, int *numstr,i
             }
             break;
         case Q_IFEQ:
-            ecrit = fprintf(sortie, "   la $t0,%s\n   la $t1,%s\n   beq $t0, $t1, %s\n",
-            handle_quadop(q.op1,sortie, pos_data, numstr, numlab, table_label), 
-            handle_quadop(q.op2,sortie, pos_data, numstr, numlab, table_label), 
-            handle_quadop(q.res,sortie, pos_data, numstr, numlab, table_label));
+            temp1 = handle_quadop(q.op1,sortie, pos_data, numstr, numlab, table_label);
+            temp2 = handle_quadop(q.op2,sortie, pos_data, numstr, numlab, table_label);
+            temp3 = handle_quadop(q.res,sortie, pos_data, numstr, numlab, table_label);
+            ecrit = fprintf(sortie, "   la $t0,%s\n   la $t1,%s\n   beq $t0, $t1, %s\n", temp1, temp2, temp3);
+            free(temp1);
+            free(temp2);
+            free(temp3);
             break;
         case Q_IFDIFF:
-            ecrit = fprintf(sortie, "   la $t0,%s\n   la $t1,%s\n   bne $t0, $t1, %s\n",
-            handle_quadop(q.op1,sortie, pos_data, numstr, numlab, table_label), 
-            handle_quadop(q.op2,sortie, pos_data, numstr, numlab, table_label), 
-            handle_quadop(q.res,sortie, pos_data, numstr, numlab, table_label));
+            temp1 = handle_quadop(q.op1,sortie, pos_data, numstr, numlab, table_label);
+            temp2 = handle_quadop(q.op2,sortie, pos_data, numstr, numlab, table_label);
+            temp3 = handle_quadop(q.res,sortie, pos_data, numstr, numlab, table_label);
+            ecrit = fprintf(sortie, "   la $t0,%s\n   la $t1,%s\n   bne $t0, $t1, %s\n", temp1, temp2, temp3);
+            free(temp1);
+            free(temp2);
+            free(temp3);
             break;
         case Q_GOTO:
-            ecrit = fprintf(sortie, "   b %s\n", 
-            handle_quadop(q.res,sortie, pos_data, numstr, numlab, table_label));
+            temp1 = handle_quadop(q.res,sortie, pos_data, numstr, numlab, table_label);
+            ecrit = fprintf(sortie, "   b %s\n", temp1);
+            free(temp1);
             break;
         case Q_GOTO_UNKNOWN:
             ecrit = fprintf(sortie, "   b UNKNOWN\n");
             break;
         case Q_BIDON:
-            ecrit = fprintf(sortie, "   BIDON %s, %s, %s\n",
-            handle_quadop(q.op1,sortie, pos_data, numstr, numlab, table_label), 
-            handle_quadop(q.op2,sortie, pos_data, numstr, numlab, table_label), 
-            handle_quadop(q.res,sortie, pos_data, numstr, numlab, table_label));
+            ecrit = fprintf(sortie, "   BIDON\n");
             break;
         case Q_BIDON2:
-            ecrit = fprintf(sortie, "   BIDON2 %s, %s, %s\n",
-            handle_quadop(q.op1,sortie, pos_data, numstr, numlab, table_label), 
-            handle_quadop(q.op2,sortie, pos_data, numstr, numlab, table_label), 
-            handle_quadop(q.res,sortie, pos_data, numstr, numlab, table_label));
+            ecrit = fprintf(sortie, "   BIDON2\n");
             break;
         case Q_SET:
-            ecrit = fprintf(sortie, "   MOVE %s, %s\n", 
-            handle_quadop(q.op1,sortie, pos_data, numstr, numlab, table_label), 
-            handle_quadop(q.res,sortie, pos_data, numstr, numlab, table_label));
+            temp1 = handle_quadop(q.op1,sortie, pos_data, numstr, numlab, table_label);
+            temp2 = handle_quadop(q.res,sortie, pos_data, numstr, numlab, table_label);
+            ecrit = fprintf(sortie, "   MOVE %s, %s\n", temp1, temp2);
             break;
         case Q_EXIT:
             ecrit = fprintf(sortie,"    jr $ra\n");;
