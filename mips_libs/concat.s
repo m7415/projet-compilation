@@ -1,66 +1,8 @@
 
-.data
-    strconcat: .asciiz "concatenation de : \n"
-    res:    .asciiz "résultat : "
-    taille: .asciiz "taille   : "
-    linefeed: .asciiz "\n"
-    str1: .asciiz "HELLO THERE !"
-    str2: .asciiz "ZBOUBI"
-    nullstr: .asciiz ""
 
 .text
 .globl strlen
 .globl concat
-
-main:
-    # la $a0, str1
-    # jal strlen
-
-    # move $a0 $v0
-    # li $v0, 1 # code for print_int
-    # syscall
-    # li $v0, 4
-    # la $a0, linefeed
-    # syscall
-
-    # la $a0, str2
-    # jal strlen
-
-    # move $a0 $v0
-    # li $v0, 1 # code for print_int
-    # syscall
-    # li $v0, 4
-    # la $a0, linefeed
-    # syscall
-
-    la $a0, str1
-    la $a1, str2
-    jal concat
-    move $s0 $v0
-    move $s1 $v1
-
-    li $v0, 4
-    la $a0, res
-    syscall
-    move $a0, $s0
-    li $v0, 4 # code for print_stirng
-    syscall 
-    li $v0, 4
-    la $a0, linefeed
-    syscall
-    li $v0, 4
-    la $a0, taille
-    syscall
-    li $v0, 1
-    move $a0, $s1
-    syscall
-    li $v0, 4
-    la $a0, linefeed
-    syscall
-    li $v0 10
-    syscall   #exit
-
-
 
 strlen:
     # args :
@@ -69,7 +11,6 @@ strlen:
     #   $v0 : length of the string in $a0
 
     # pas besoin de sauvegarder s0-7 et ra, parce qu'on ne s'en sert pas
-
     li $v0, 0 # initialisation du compteur
 loopstrlen: 
     lb $t0, 0($a0) # prochain caractère dans $t1
@@ -86,24 +27,21 @@ concat:
     # a0 and a1 are adresses to 2 strings
     # after the call, v0 will contain
 
-    move $s0, $a0
-    move $s1, $a1
-
-    li $v0, 4
-    la $a0, strconcat
-    syscall # concaténaion de :
-    li $v0, 4
-    move $a0, $s0
-    syscall # <arg 1>
-    li $v0, 4
-    la $a0, linefeed
-    syscall # \n
-    li $v0, 4
-    move $a0, $s1
-    syscall # <arg 2>
-    li $v0, 4
-    la $a0, linefeed
-    syscall # \n
+    # li $v0, 4
+    # la $a0, strconcat
+    # syscall # concaténaion de :
+    # li $v0, 4
+    # move $a0, $s0
+    # syscall # <arg 1>
+    # li $v0, 4
+    # la $a0, linefeed
+    # syscall # \n
+    # li $v0, 4
+    # move $a0, $s1
+    # syscall # <arg 2>
+    # li $v0, 4
+    # la $a0, linefeed
+    # syscall # \n
     
 
     sub $sp, $sp, 36 # faire de l'espace dans le stack pour sauvegarder les registres
@@ -116,6 +54,11 @@ concat:
     sw $s5, 24($sp) 
     sw $s6, 28($sp) 
     sw $s7, 32($sp) 
+
+
+    move $s0, $a0
+    move $s1, $a1
+
 
     # sub $sp, $sp, 8 # faire de l'espace dans le stack pour sauvegarder ce qui
     # # risque de partir avec jal, et dont on se sert
