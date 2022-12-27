@@ -1,0 +1,8 @@
+truc = 0;
+truc = "oh la jolie chaine";
+echo "truc = ";
+echo ${truc};
+if test ${truc} = "ah ouai" then
+    echo "wow des variables insane"
+fi;
+exit

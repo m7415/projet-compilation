@@ -43,6 +43,10 @@ void list_print(struct list * l) {
 
 
 void list_free(struct list * l) {
+    if(l == NULL) {
+        return;
+    } 
+    free(l->next);
     free(l);
 }
 

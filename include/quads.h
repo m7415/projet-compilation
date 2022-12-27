@@ -21,7 +21,18 @@ struct quadop {
     }; // union anonyme
 };
 
-enum quad_kind { Q_IFEQ, Q_IFDIFF, Q_GOTO, Q_GOTO_UNKNOWN, Q_BIDON, Q_BIDON2, Q_SET, Q_EXIT, Q_ECHO };
+enum quad_kind { 
+    Q_IFEQ, // if op1 == op2 goto res
+    Q_IFDIFF, // if op1 != op2 goto res
+    Q_GOTO, // goto res
+    Q_GOTO_UNKNOWN, // goto ?? (normalement à la fin y en a pas)
+    Q_BIDON, // bidon op1
+    Q_BIDON2, // bidon op1
+    Q_EXIT, // exit op1
+    Q_ECHO, // echo op1
+    Q_SET, // res <- op1
+    Q_DECLARE // declare op1 (op1 est un QO_IDENT)
+};
 
 struct quad {
     enum quad_kind kind;
@@ -43,8 +54,9 @@ struct quad quad_goto(struct quadop addr);
 struct quad quad_goto_unknown();
 struct quad quad_bidon(int v);
 struct quad quad_bidon2(int v);
-struct quad quad_set(char * id, struct quadop val);
+struct quad quad_set(struct quadop ident, struct quadop val);
 struct quad quad_exit(int v);
 struct quad quad_echo(struct quadop val); // un peu fourbe, psk en MIPS ça demande un appel à une primitive
+struct quad quad_declare(struct quadop ident);
 
 #endif

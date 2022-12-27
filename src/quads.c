@@ -47,6 +47,10 @@ void print_quad(struct quad q) {
         printf("ECHO ");
         print_quadop(q.op1);
     }
+    else if(q.kind == Q_DECLARE) {
+        printf("DECLARE ");
+        print_quadop(q.op1);
+    }
     else {
         printf("UNRECOGNIZED QUAD");
     }
@@ -67,7 +71,9 @@ void print_quadop(struct quadop op) {
         printf("?");
     }
     else if(op.kind == QO_IDENT) {
+        printf("IDENT[");
         printf("%s", op.ident);
+        printf("]");
     }
     else if(op.kind == QO_CST_STRING) {
         printf("%s",op.cst_str);
@@ -160,11 +166,11 @@ struct quad quad_goto_unknown() {
 }
 
 
-struct quad quad_set(char * id, struct quadop val) {
+struct quad quad_set(struct quadop ident, struct quadop val) {
     struct quad q;
     q.kind = Q_SET;
     q.op1 = val;
-    q.res = quadop_ident(id);
+    q.res = ident;
     return q;
 }
 
@@ -193,5 +199,12 @@ struct quad quad_echo(struct quadop val) {
     struct quad q;
     q.kind = Q_ECHO;
     q.op1 = val;
+    return q;
+}
+
+struct quad quad_declare(struct quadop ident) {
+    struct quad q;
+    q.kind = Q_DECLARE;
+    q.op1 = ident;
     return q;
 }

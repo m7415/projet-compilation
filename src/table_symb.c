@@ -5,10 +5,10 @@ struct ctx {
     int nb_entry; // nombre de symboles
 };
 
-struct entry {
-    enum entry_type type;
-    char name[MAX_IDENT_SIZE];
-};
+// struct entry {
+//     enum entry_type type;
+//     char name[MAX_IDENT_SIZE];
+// };
 
 struct stack_interne {
     struct ctx * current;
@@ -27,6 +27,7 @@ struct entry * create_entry(char * name, enum entry_type type) {
     return new_entry;
 }
 
+
 void pushctx(struct ctx_stack * ctx_stack) {
     struct ctx * new_ctx = malloc( sizeof(struct ctx) );
     new_ctx->nb_entry = 0;
@@ -38,15 +39,17 @@ void pushctx(struct ctx_stack * ctx_stack) {
     ctx_stack->head = next;
 }
 
-void popctx(struct ctx_stack * ctx_stack) {
+void popctx(struct ctx_stack * ctx_stack, int free_entries) {
     if(ctx_stack->head == NULL) {
         printf("/!\\popctx mais pas de ctx existant (ne devrait pas arriver si on pop pas trop hihi)\n");
         return;
     }
     struct ctx * current_ctx = ctx_stack->head->current;
 
-    for(int i=0; i<current_ctx->nb_entry; i++) {
-        free(current_ctx->entries[i]);
+    if(free_entries == 1) {
+        for(int i=0; i<current_ctx->nb_entry; i++) {
+            free(current_ctx->entries[i]);
+        }
     }
     free(current_ctx);
     struct stack_interne * to_free = ctx_stack->head;
@@ -74,12 +77,12 @@ struct ctx_stack * create_ctx_stack(void) {
     return ctx_stack;
 }
 
-void free_ctx_stack(struct ctx_stack * ctx_stack) {
+void free_ctx_stack(struct ctx_stack * ctx_stack, int free_entries) {
     if(ctx_stack == NULL) {
         return;
     }
     while( ctx_stack->head != NULL ) {
-        popctx(ctx_stack);
+        popctx(ctx_stack, free_entries);
     }
     free(ctx_stack);
 }
@@ -99,6 +102,9 @@ void print_entry(struct entry * e) {
         case E_FUNC:
             printf("func  ");
             break;
+        case E_STR:
+            printf("str   ");
+            break;
         default:
             printf("/!\\ unknown type/!\\");
     }
@@ -107,7 +113,7 @@ void print_entry(struct entry * e) {
 
 void print_ctx(struct ctx * c) {
     if(c->nb_entry == 0) {
-        printf("(empty ctx)");
+        printf("(empty ctx)\n");
     }
     for(int i=0; i < c->nb_entry; i++) {
         print_entry(c->entries[i]);

@@ -1,6 +1,9 @@
 %{
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdnoreturn.h> // pour fatal
+#include <stdarg.h> // pour fatal
+#include "table_symb.h"
 #include "quads.h"
 #include "compil.tab.h"
 #include "ll-list.h"
@@ -12,10 +15,18 @@ void complete(struct list * l, size_t addr); // compléter les goto inconnus
 int new_temp(); // générer une variable temporaire, et renvoyer son pointeur
                 // dans la table des symboles
                 //TODO !
+void fatal(const char * msg, ...); // affiche un msg d'erreur formaté (comme printf)
+// puis exit 1;
+
 
 int nextquad = 0; // compteur global de quads
 struct quad global_code[1<<16]; // euh ça fait beaucoup là non ?
 
+struct ctx_stack * ctx_stack; // le stack de table de symboles
+
+struct ctx_stack * liste_symbole; // la liste de tout les symboles
+// (sans distinction de portée)
+// > il faut free dans le main !!
 
 void gencode(struct quad q) {
     global_code[nextquad++] = q;
@@ -46,6 +57,17 @@ void complete(struct list * l, size_t addr) {
 int new_temp() {
     printf("call new_temp mais c'est pas encore fait, ça c'est padbol\n");
     return 0;
+}
+
+
+noreturn void fatal(const char *msg, ...)
+{
+    va_list ap;
+    va_start(ap, msg);
+    vfprintf(stderr, msg, ap);
+    fprintf(stderr, "\n");
+    va_end(ap);
+    exit(1);
 }
 
 %}
@@ -93,7 +115,8 @@ int new_temp() {
 %token OP_NOT_NULL OP_NULL OP_EQ OP_NEQ OP_GT OP_GE OP_LT OP_LE
 %token LOGIC_NOT LOGIC_AND LOGIC_OR
 %token PLUS_OU_MOINS FOIS_DIV_MOD
-%token ACCES_VARIABLE ACCES_ELEM_TABLEAU
+%token<str> ACCES_VARIABLE
+%token ACCES_ELEM_TABLEAU
 %token ACCES_ARG
 %token ACCES_LISTE_ARG ACCES_LISTE_TABLEAU
 %token<intval> LAST_FUNC_STATUS
@@ -110,7 +133,12 @@ int new_temp() {
 
 %%
 
-programme : liste_instructions {}
+programme : {
+    ctx_stack = create_ctx_stack();
+    liste_symbole = create_ctx_stack();
+    } liste_instructions {
+    free_ctx_stack(ctx_stack, 0);
+}
 | %empty {}
 ;
 
@@ -120,9 +148,10 @@ liste_instructions
     list_print($1.next);
     printf("\n$4.next : ");
     list_print($4.next);
-    printf("\n$3 : %i", $3);
+    printf("\n$3 : %i\n", $3);
 
     complete($1.next, $3);
+    list_free($1.next);
     $$.next = $4.next;
 }
 | instruction {
@@ -132,9 +161,29 @@ liste_instructions
 ;
 
 instruction
-: IDENTIFIER '=' concatenation {}
+: IDENTIFIER '=' concatenation {
+    printf("declaration ident : '%s'\n", $1);
+
+    struct quadop ident = quadop_ident($1);
+
+    if( lookup(ctx_stack, $1) == NULL ) {
+        struct entry * id = create_entry($1, E_STR);
+        newname(ctx_stack, id);
+        struct quad q_decl = quad_declare(ident);
+        gencode(q_decl);
+        if( lookup(liste_symbole, $1) == NULL ) {
+            newname(liste_symbole, id);
+        }
+    }
+
+    struct quad q = quad_set(ident, $3.res);
+    gencode(q);
+
+    $$.next = NULL;
+}
 | KW_IF test_bloc KW_THEN M liste_instructions KW_FI {
     complete($2.true, $4);
+    list_free($2.true);
     // struct list * next = $2.false;
     $$.next = NULL;
     $$.next = list_concat($$.next, $2.false);
@@ -193,8 +242,10 @@ test_expr2
 | test_expr3 {
     $$.true = NULL;
     $$.true = list_concat($$.true, $1.true);
+    // list_free($1.true);
     $$.false = NULL;
     $$.false = list_concat($$.false, $1.false);
+    // list_free($1.false);
 }
 ;
 
@@ -204,8 +255,10 @@ test_expr3
 | test_instruction  {
     $$.true = NULL;
     $$.true = list_concat($$.true, $1.true);
+    // list_free($1.true);
     $$.false = NULL;
     $$.false = list_concat($$.false, $1.false);
+    // list_free($1.false);
 }
 | LOGIC_NOT test_instruction {}
 ;
@@ -250,7 +303,15 @@ liste_operandes
 ;
 
 operande
-: ACCES_VARIABLE {}
+: ACCES_VARIABLE {
+    printf("accès à la variable : %s\n", $1);
+    struct entry * e = lookup(ctx_stack, $1);
+    if( e == NULL ) {
+        fatal("Erreur : accès à une variable non définie : '%s'\n", $1);
+    }
+    struct quadop ident = quadop_ident(e->name);
+    $$.res = ident;
+}
 | ACCES_ELEM_TABLEAU {}
 | MOT {
     $$.res = quadop_cst_string($1);

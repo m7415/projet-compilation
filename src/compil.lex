@@ -95,6 +95,9 @@ expr    { return KW_EXPR    ;}
 
 \$\{{IDENT}\} {
     // printf("accès variable : ( %s )\n", yytext);
+    strncpy(yylval.str, yytext+2, MAX_STRING_SIZE);
+    yylval.str[ strlen(yylval.str) -1 ] = '\0'; // supprimer le '}'
+    // de sorte que yylval.str contienne l'identificateur
     return ACCES_VARIABLE;
 }
 
