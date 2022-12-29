@@ -111,10 +111,13 @@ noreturn void fatal(const char *msg, ...)
 %token KW_FI KW_DECLARE KW_TEST KW_EXPR
 %token<str> STRING_DOUBLE_QUOTE STRING_SINGLE_QUOTE MOT IDENTIFIER
 %token<intval> NUMBER 
-%token IS_DIFF
+%token EQUAL NOT_EQUAL
 %token OP_NOT_NULL OP_NULL OP_EQ OP_NEQ OP_GT OP_GE OP_LT OP_LE
 %token LOGIC_NOT LOGIC_AND LOGIC_OR
 %token PLUS_OU_MOINS FOIS_DIV_MOD
+%token O_PAR C_PAR O_BRACKET C_BRACKET O_CURLY_BRACKET C_CURLY_BRACKET SEMICOLON
+%token DOLLAR
+%token QUESTION_MARK
 %token<str> ACCES_VARIABLE
 %token ACCES_ELEM_TABLEAU
 %token ACCES_ARG
@@ -143,7 +146,7 @@ programme : {
 ;
 
 liste_instructions
-: liste_instructions ';' M instruction {
+: liste_instructions SEMICOLON M instruction {
     printf("$1.next : ");
     list_print($1.next);
     printf("\n$4.next : ");
@@ -161,7 +164,7 @@ liste_instructions
 ;
 
 instruction
-: IDENTIFIER '=' concatenation {
+: IDENTIFIER EQUAL concatenation {
     printf("declaration ident : '%s'\n", $1);
 
     struct quadop ident = quadop_ident($1);
@@ -250,8 +253,8 @@ test_expr2
 ;
 
 test_expr3
-: '(' test_expr ')' {}
-| LOGIC_NOT '(' test_expr ')' {}
+: O_PAR test_expr C_PAR {}
+| LOGIC_NOT O_PAR test_expr C_PAR {}
 | test_instruction  {
     $$.true = NULL;
     $$.true = list_concat($$.true, $1.true);
@@ -264,7 +267,7 @@ test_expr3
 ;
 
 test_instruction
-: concatenation '=' concatenation {
+: concatenation EQUAL concatenation {
     $$.true = list_creer(nextquad);
     struct quad q = quad_ifeq($1.res, $3.res);
     gencode(q);
@@ -279,7 +282,7 @@ test_instruction
     list_print($$.false);
     printf("\n");
 }
-| concatenation IS_DIFF concatenation {
+| concatenation NOT_EQUAL concatenation {
     $$.true = list_creer(nextquad);
     struct quad q = quad_ifdiff($1.res, $3.res);
     gencode(q);
