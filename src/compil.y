@@ -1,6 +1,7 @@
 %{
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include <stdnoreturn.h> // pour fatal
 #include <stdarg.h> // pour fatal
 #include "table_symb.h"
@@ -12,15 +13,15 @@ extern int yylex();
 extern void yyerror(const char * msg);
 void gencode(struct quad q); // ajouter le quad à notre code
 void complete(struct list * l, size_t addr); // compléter les goto inconnus
-int new_temp(); // générer une variable temporaire, et renvoyer son pointeur
-                // dans la table des symboles
-                //TODO !
+struct entry * new_temp(); // générer une nouvelle entry, renvoyer son pointeur
+
 void fatal(const char * msg, ...); // affiche un msg d'erreur formaté (comme printf)
 // puis exit 1;
 
 
 int nextquad = 0; // compteur global de quads
 struct quad global_code[1<<16]; // euh ça fait beaucoup là non ?
+int nb_temp = 0; // le nombre d'identifieurs temporaires créés (pour assurer l'unicité de ceux-ci)
 
 struct ctx_stack * ctx_stack; // le stack de table de symboles
 
@@ -54,9 +55,15 @@ void complete(struct list * l, size_t addr) {
     printf("with %lu\n", addr);
 }
 
-int new_temp() {
-    printf("call new_temp mais c'est pas encore fait, ça c'est padbol\n");
-    return 0;
+struct entry * new_temp() {
+    // printf("call new_temp mais c'est pas encore fait, ça c'est padbol\n");
+    char name[MAX_IDENT_SIZE]; // 32 chars, incluant le \0
+    int rand_nb = rand(); // nombre au hasard
+    snprintf(name, MAX_IDENT_SIZE, "_tmp_%010d%05d", rand_nb, nb_temp++);
+    // grace aux formats, on sait que name prend exactement 20 caractères (21 en comptant \0)
+    printf("nouvel ident (par new_temp) : '%s'\n",name);
+    
+    return create_entry(name, E_STR);
 }
 
 
@@ -99,6 +106,15 @@ noreturn void fatal(const char *msg, ...)
         struct list * false;
     } boolexpr;
 
+    struct {
+        enum {
+            else_empty, else_elif, else_else
+        } type;
+        int debut_instr;
+        int debut_cond;
+        struct list * next;
+    } else_part_type;
+
     
     struct {
         struct list * next;
@@ -127,7 +143,9 @@ noreturn void fatal(const char *msg, ...)
 %type<expr> concatenation operande liste_operandes
 %type<boolexpr> test_bloc test_expr test_expr2 test_expr3 test_instruction
 %type<instr_type> liste_instructions instruction
-%type<intval> M
+%type<else_part_type> else_part
+%type<intval> M G
+
 
 %left '+' '-'
 %left '*' '/' '%'
@@ -137,8 +155,12 @@ noreturn void fatal(const char *msg, ...)
 %%
 
 programme : {
+    // srand(time(NULL)); // pour le générateur de nombre aléatoire, utilisé dans newtemp()
+    srand(0); // (aléatoire fixe pour les tests)
+
     ctx_stack = create_ctx_stack();
     liste_symbole = create_ctx_stack();
+
     } liste_instructions {
     free_ctx_stack(ctx_stack, 0);
 }
@@ -147,18 +169,18 @@ programme : {
 
 liste_instructions
 : liste_instructions SEMICOLON M instruction {
-    printf("$1.next : ");
-    list_print($1.next);
-    printf("\n$4.next : ");
-    list_print($4.next);
-    printf("\n$3 : %i\n", $3);
+    // printf("$1.next : ");
+    // list_print($1.next);
+    // printf("\n$4.next : ");
+    // list_print($4.next);
+    // printf("\n$3 : %i\n", $3);
 
     complete($1.next, $3);
     list_free($1.next);
     $$.next = $4.next;
 }
 | instruction {
-    printf("aaaa 3\n");
+    // printf("aaaa 3\n");
     $$.next = $1.next;
 }
 ;
@@ -184,13 +206,33 @@ instruction
 
     $$.next = NULL;
 }
-| KW_IF test_bloc KW_THEN M liste_instructions KW_FI {
+| KW_IF test_bloc KW_THEN M liste_instructions G else_part KW_FI {
     complete($2.true, $4);
     list_free($2.true);
     // struct list * next = $2.false;
     $$.next = NULL;
-    $$.next = list_concat($$.next, $2.false);
+    if($7.type == else_elif) {
+        complete($2.false, $7.debut_cond);
+        list_free($2.false);
+    }
+    else if ($7.type == else_else) {
+        complete($2.false, $7.debut_instr);
+        list_free($2.false);
+    }
+    else {
+        $$.next = list_concat($$.next, $2.false);
+    }
     $$.next = list_concat($$.next, $5.next);
+    $$.next = list_concat($$.next, $7.next);
+
+    struct list * tmp = list_creer($6);
+    // printf("(if) créé liste avec %i\n", $6);
+    $$.next = list_concat($$.next, tmp);
+
+    // printf("else_part.next : ");
+    // list_print($7.next);
+    // printf("\n");
+
     printf("if.next : ");
     list_print($$.next);
     printf("\n");
@@ -209,7 +251,52 @@ instruction
 }
 ;
 
+else_part
+: KW_ELIF M test_bloc KW_THEN M liste_instructions G else_part {
+    complete($3.true, $5);
+    list_free($3.true);
+    $$.type=else_elif;
+    $$.debut_cond = $2;
+    $$.debut_instr = $5;
+
+    $$.next = NULL;
+    if($8.type == else_elif) {
+        complete($3.false, $8.debut_cond);
+        list_free($3.false);
+    }
+    else if ($8.type == else_else) {
+        complete($3.false, $8.debut_instr);
+        list_free($3.false);
+    }
+    else {
+        $$.next = list_concat($$.next, $3.false);
+    }
+    $$.next = list_concat($$.next, $6.next);
+    $$.next = list_concat($$.next, $8.next);
+
+    // printf("truc à faire avec %i\n", $7);
+    struct list * tmp = list_creer($7);
+    // printf("(elsepart) créé liste avec %i\n", $7);
+    $$.next = list_concat($$.next, tmp);
+
+    // printf("inside_else_part.next : ");
+    // list_print($$.next); // WTF (ça a l'air de s'etre calmé mtn...)
+    // printf("\n");
+}
+| KW_ELSE M liste_instructions M {
+    $$.type = else_else;
+    $$.debut_instr = $2;
+}
+| %empty {
+    $$.type = else_empty;
+}
+;
+
 M: %empty {$$ = nextquad;}
+G: %empty {
+    $$ = nextquad;
+    gencode(quad_goto_unknown());
+}
 
 /*
 else_part
@@ -219,7 +306,16 @@ else_part
 ;*/
 
 concatenation
-: concatenation operande {}
+: concatenation operande {
+    struct entry * nv_temp = new_temp();
+    struct quadop ident_tmp = quadop_ident(nv_temp->name);
+    struct quad q_concat = quad_concat(ident_tmp, $1.res, $2.res);
+    gencode(quad_declare(ident_tmp));
+    newname(ctx_stack, nv_temp);
+    newname(liste_symbole, nv_temp);
+    gencode(q_concat);
+    $$.res = ident_tmp;
+}
 | operande { $$.res = $1.res; }
 ;
 

@@ -31,7 +31,8 @@ enum quad_kind {
     Q_EXIT, // exit op1
     Q_ECHO, // echo op1
     Q_SET, // res <- op1
-    Q_DECLARE // declare op1 (op1 est un QO_IDENT)
+    Q_DECLARE, // declare op1 (op1 est un QO_IDENT)
+    Q_CONCAT // (ident)res <- concat(op1, op2)
 };
 
 struct quad {
@@ -39,8 +40,8 @@ struct quad {
     struct quadop op1, op2, res;
 };
 
-void print_quad(struct quad q);
-void print_quadop(struct quadop op);
+void print_quad(struct quad q, FILE * file_);
+void print_quadop(struct quadop op, FILE * file_);
 
 struct quadop quadop_cst(int v);
 struct quadop quadop_cst_string(char * v);
@@ -58,5 +59,6 @@ struct quad quad_set(struct quadop ident, struct quadop val);
 struct quad quad_exit(int v);
 struct quad quad_echo(struct quadop val); // un peu fourbe, psk en MIPS ça demande un appel à une primitive
 struct quad quad_declare(struct quadop ident);
+struct quad quad_concat(struct quadop ident, struct quadop op1, struct quadop op2);
 
 #endif

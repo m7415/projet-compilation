@@ -8,9 +8,10 @@ struct list {
     struct list * next;
 };
 
-struct list * list_creer();
+struct list * list_creer(size_t addr);
 void list_free(struct list * l);
 struct list * list_concat(struct list * l1, struct list * l2);
+// struct list * list_add(struct list * liste, size_t addr)
 
 // struct list * list_copy(struct list * l);
 

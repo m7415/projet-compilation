@@ -3,7 +3,7 @@
 int quads_test() {
     struct quad bidon = quad_bidon(42);
 
-    print_quad(bidon);
+    print_quad(bidon, NULL);
 
     return 0;
 }

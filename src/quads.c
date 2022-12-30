@@ -1,102 +1,125 @@
 #include "quads.h"
 
-void print_quad(struct quad q) {
+void print_quad(struct quad q, FILE * file_) {
+    FILE * file;
+    if(file_ == NULL) {
+        file = stdout;
+    }
+    else {
+        file = file_;
+    }
     if( q.kind == Q_GOTO) {
-        printf("GOTO ");
-        print_quadop(q.res);
+        fprintf(file, "GOTO ");
+        print_quadop(q.res, file);
     }
     else if(q.kind == Q_GOTO_UNKNOWN) {
-        printf("GOTO ?");
+        fprintf(file,"GOTO ?");
         // printf("GOTO <addr>?");
     }
     else if(q.kind == Q_IFDIFF) {
-        printf("IF ");
-        print_quadop(q.op1);
-        printf(" != ");
-        print_quadop(q.op2);
-        printf(" GOTO ");
-        print_quadop(q.res);
+        fprintf(file, "IF ");
+        print_quadop(q.op1, file);
+        fprintf(file, " != ");
+        print_quadop(q.op2, file);
+        fprintf(file, " GOTO ");
+        print_quadop(q.res, file);
     }
     else if(q.kind == Q_IFEQ) {
-        printf("IF ");
-        print_quadop(q.op1);
-        printf(" == ");
-        print_quadop(q.op2);
-        printf(" GOTO ");
-        print_quadop(q.res);
+        fprintf(file, "IF ");
+        print_quadop(q.op1, file);
+        fprintf(file, " == ");
+        print_quadop(q.op2, file);
+        fprintf(file, " GOTO ");
+        print_quadop(q.res, file);
     }
     else if(q.kind == Q_SET) {
-        printf("SET ");
-        print_quadop(q.res);
-        printf(" TO ");
-        print_quadop(q.op1);
+        fprintf(file, "SET ");
+        print_quadop(q.res, file);
+        fprintf(file, " TO ");
+        print_quadop(q.op1, file);
     }
     else if(q.kind == Q_BIDON) {
-        printf("XXXX ");
-        print_quadop(q.op1);
+        fprintf(file, "XXXX ");
+        print_quadop(q.op1, file);
     }
     else if(q.kind == Q_BIDON2) {
-        printf("YYYY ");
-        print_quadop(q.op1);
+        fprintf(file, "YYYY ");
+        print_quadop(q.op1, file);
     }
     else if(q.kind == Q_EXIT) {
-        printf("EXIT ");
-        print_quadop(q.op1);
+        fprintf(file, "EXIT ");
+        print_quadop(q.op1, file);
     }
     else if(q.kind == Q_ECHO) {
-        printf("ECHO ");
-        print_quadop(q.op1);
+        fprintf(file, "ECHO ");
+        print_quadop(q.op1, file);
     }
     else if(q.kind == Q_DECLARE) {
-        printf("DECLARE ");
-        print_quadop(q.op1);
+        fprintf(file, "DECLARE ");
+        print_quadop(q.op1, file);
+    }
+    else if(q.kind == Q_CONCAT) {
+        fprintf(file, "SET ");
+        print_quadop(q.res, file);
+        fprintf(file, " TO CONCAT(");
+        print_quadop(q.op1, file);
+        fprintf(file, ", ");
+        print_quadop(q.op2, file);
+        fprintf(file, ")");
     }
     else {
-        printf("UNRECOGNIZED QUAD");
+        fprintf(file, "UNRECOGNIZED QUAD");
     }
-    printf("\n");
+    fprintf(file, "\n");
 }
 
 // #define PRINTTYPES
 
-void print_quadop(struct quadop op) {
+void print_quadop(struct quadop op, FILE * file_) {
+    FILE * file;
+    if(file_ == NULL) {
+        file = stdout;
+    }
+    else {
+        file = file_;
+    }
     #ifndef PRINTTYPES
     if(op.kind == QO_CST) {
-        printf("%d", op.cst);
+        fprintf(file, "%d", op.cst);
     }
     else if(op.kind == QO_ADDR) {
-        printf("%ld", op.addr);
+        fprintf(file, "%ld", op.addr);
     }
     else if(op.kind == QO_UNKNOWN) {
-        printf("?");
+        fprintf(file, "?");
     }
     else if(op.kind == QO_IDENT) {
-        printf("IDENT[");
-        printf("%s", op.ident);
-        printf("]");
+        fprintf(file, "IDENT[");
+        fprintf(file, "%s", op.ident);
+        fprintf(file, "]");
     }
     else if(op.kind == QO_CST_STRING) {
-        printf("%s",op.cst_str);
+        fprintf(file, "%s",op.cst_str);
     }
     #else
     if(op.kind == QO_CST) {
-        printf("<cst>%d", op.cst);
+        fprintf(file, "<cst>%d", op.cst);
     }
     else if(op.kind == QO_ADDR) {
-        printf("<addr>%ld", op.addr);
+        fprintf(file, "<addr>%ld", op.addr);
     }
     else if(op.kind == QO_UNKNOWN) {
-        printf("<addr>?");
+        fprintf(file, "<addr>?");
     }
     else if(op.kind == QO_IDENT) {
-        printf("<ident>%s", op.ident);
+        fprintf(file, "<ident>%s", op.ident);
     }
     else if(op.kind == QO_CST_STRING) {
-        printf("<cst_str>%s",op.cst_str);
+        fprintf(file, "<cst_str>%s",op.cst_str);
     }
     #endif
     else {
-        printf("?!?!");
+        fprintf(file, "?!?!");
     }
 }
 
@@ -206,5 +229,14 @@ struct quad quad_declare(struct quadop ident) {
     struct quad q;
     q.kind = Q_DECLARE;
     q.op1 = ident;
+    return q;
+}
+
+struct quad quad_concat(struct quadop ident, struct quadop op1, struct quadop op2) {
+    struct quad q;
+    q.kind = Q_CONCAT;
+    q.res = ident;
+    q.op1 = op1;
+    q.op2 = op2;
     return q;
 }
