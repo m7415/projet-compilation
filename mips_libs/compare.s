@@ -9,7 +9,7 @@ compare:
     # 
     # return values:
     # $v0 : 0   if str1 == str2
-    #       !=0 else
+    #       1   else
 
     sub $sp, $sp, 36 # faire de l'espace dans le stack pour sauvegarder les registres
     sw $ra, 0($sp) # sauvegarder $ra, $s0-7
