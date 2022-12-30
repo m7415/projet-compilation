@@ -5,7 +5,6 @@
 // Inclure les en-têtes de tous les tests
 #include "./tests/lexical_test.h"
 #include "./tests/syntax_test.h"
-#include "./tests/quads_test.h"
 #include "./tests/mips_test.h"
 
 
@@ -26,14 +25,7 @@ int main() {
     //
   }
 
-  printf("\nTest 3 : quads (bidon, à suppr, mais pour tester le makefile en fait)\n");
-  if(quads_test() == 0){
-    printf("Passed !\n");
-  }else{
-    //
-  }
-
-  printf("\nTest 4 : génération mips\n");
+  printf("\nTest 3 : génération mips\n");
   if(mips_test() == 0){
     printf("Passed !\n");
   }else{
