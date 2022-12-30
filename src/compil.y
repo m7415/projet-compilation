@@ -55,6 +55,27 @@ void complete(struct list * l, size_t addr) {
     printf("with %lu\n", addr);
 }
 
+void complete_single(int quad_num, size_t addr) {
+    if(quad_num >= nextquad) {
+        fprintf(stderr, 
+            "complete_single d'un quad qui n'existe pas : %i\n", quad_num);
+        return;
+    }
+    if(global_code[quad_num].kind != Q_GOTO_UNKNOWN
+    && global_code[quad_num].kind != Q_IFEQ
+    && global_code[quad_num].kind != Q_IFDIFF) {
+        fprintf(stderr, "ERREUR : complete un quad qui n'est pas unknown ?-?\n");
+    }
+    else {
+        printf("completing quad n° %i with %lu\n", quad_num, addr);
+        global_code[quad_num].res.addr = addr;
+        global_code[quad_num].res.kind = QO_ADDR;
+        if( global_code[quad_num].kind == Q_GOTO_UNKNOWN ) {
+            global_code[quad_num].kind = Q_GOTO;
+        }
+    }
+}
+
 struct entry * new_temp() {
     // printf("call new_temp mais c'est pas encore fait, ça c'est padbol\n");
     char name[MAX_IDENT_SIZE]; // 32 chars, incluant le \0
@@ -206,40 +227,50 @@ instruction
 
     $$.next = NULL;
 }
-| KW_IF test_bloc KW_THEN M liste_instructions G else_part KW_FI {
+| KW_IF test_bloc KW_THEN M liste_instructions else_part KW_FI {
     complete($2.true, $4);
     list_free($2.true);
     // struct list * next = $2.false;
     $$.next = NULL;
-    if($7.type == else_elif) {
-        complete($2.false, $7.debut_cond);
+    if($6.type == else_elif) {
+        complete($2.false, $6.debut_cond);
         list_free($2.false);
     }
-    else if ($7.type == else_else) {
-        complete($2.false, $7.debut_instr);
+    else if ($6.type == else_else) {
+        complete($2.false, $6.debut_instr);
         list_free($2.false);
     }
     else {
         $$.next = list_concat($$.next, $2.false);
     }
     $$.next = list_concat($$.next, $5.next);
-    $$.next = list_concat($$.next, $7.next);
+    $$.next = list_concat($$.next, $6.next);
 
-    struct list * tmp = list_creer($6);
-    // printf("(if) créé liste avec %i\n", $6);
-    $$.next = list_concat($$.next, tmp);
+    ////// struct list * tmp = list_creer($x);
+    ////// // printf("(if) créé liste avec %i\n", $x);
+    ////// $$.next = list_concat($$.next, tmp);
 
     // printf("else_part.next : ");
-    // list_print($7.next);
+    // list_print($6.next);
     // printf("\n");
 
     printf("if.next : ");
     list_print($$.next);
     printf("\n");
 }
+| KW_WHILE M test_bloc KW_DO M liste_instructions G KW_DONE {
+    complete($3.true, $5);
+    list_free($3.true);
+    complete_single($7, $2);
+
+    complete($6.next, $2);
+    list_free($6.next);
+
+    $$.next = NULL;
+    // $$.next = list_concat($$.next, $6.next);
+    $$.next = list_concat($$.next, $3.false);
+}
 | KW_ECHO liste_operandes {
-    // struct quadop val = quadop_cst_string("testouille");
-    // struct quad q = quad_echo(val);
     struct quad q = quad_echo($2.res);
     gencode(q);
     $$.next = NULL;
@@ -251,44 +282,51 @@ instruction
 }
 ;
 
+
 else_part
-: KW_ELIF M test_bloc KW_THEN M liste_instructions G else_part {
-    complete($3.true, $5);
-    list_free($3.true);
+: G KW_ELIF M test_bloc KW_THEN M liste_instructions else_part {
+    complete($4.true, $6);
+    list_free($4.true);
     $$.type=else_elif;
-    $$.debut_cond = $2;
-    $$.debut_instr = $5;
+    $$.debut_cond = $3;
+    $$.debut_instr = $6;
 
     $$.next = NULL;
     if($8.type == else_elif) {
-        complete($3.false, $8.debut_cond);
-        list_free($3.false);
+        complete($4.false, $8.debut_cond);
+        list_free($4.false);
     }
     else if ($8.type == else_else) {
-        complete($3.false, $8.debut_instr);
-        list_free($3.false);
+        complete($4.false, $8.debut_instr);
+        list_free($4.false);
     }
     else {
-        $$.next = list_concat($$.next, $3.false);
+        $$.next = list_concat($$.next, $4.false);
     }
-    $$.next = list_concat($$.next, $6.next);
+    $$.next = list_concat($$.next, $7.next);
     $$.next = list_concat($$.next, $8.next);
 
-    // printf("truc à faire avec %i\n", $7);
-    struct list * tmp = list_creer($7);
-    // printf("(elsepart) créé liste avec %i\n", $7);
-    $$.next = list_concat($$.next, tmp);
+    /////// // printf("truc à faire avec %i\n", $x);
+    /////// struct list * tmp = list_creer($x);
+    /////// // printf("(elsepart) créé liste avec %i\n", $x);
+    /////// $$.next = list_concat($$.next, tmp);
+
+    struct list * tmp2 = list_creer($1);
+    $$.next = list_concat($$.next, tmp2);
 
     // printf("inside_else_part.next : ");
     // list_print($$.next); // WTF (ça a l'air de s'etre calmé mtn...)
     // printf("\n");
 }
-| KW_ELSE M liste_instructions M {
+| G KW_ELSE M liste_instructions M {
     $$.type = else_else;
-    $$.debut_instr = $2;
+    $$.debut_instr = $3;
+    struct list * tmp2 = list_creer($1);
+    $$.next = list_concat($$.next, tmp2);
 }
 | %empty {
     $$.type = else_empty;
+    $$.next = NULL;
 }
 ;
 
