@@ -38,7 +38,7 @@ int mips_test(){
         return 1;
     }
     
-    trad_MIPS(sortie,global_code,nextquad);
+    trad_mips(sortie,global_code,nextquad);
 
     // Affichage du code MIPS
     //printf("%s\n", mips_code);

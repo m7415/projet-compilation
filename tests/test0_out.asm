@@ -37,6 +37,7 @@ _l2:
    la $a0, _s7
    li $v0, 4
    syscall
+   b _l3
 _l3:
    la $t0,_s8
    la $t1,_s9
@@ -46,6 +47,8 @@ _l4:
    la $a0, _s10
    li $v0, 4
    syscall
+   b _l1
+   b _l1
 _l1:
    la $a0, _s11
    li $v0, 4
@@ -53,4 +56,4 @@ _l1:
    la $a0, _s12
    li $v0, 4
    syscall
-    jr $ra
+jr $ra

@@ -22,5 +22,7 @@ char* handle_quadop(struct quadop qo, FILE * sortie,int *pos_data,int *numstr,in
 // Fonction de traduction de quad en code assembleur MIPS
 int handle_quad(int i, struct quad q, FILE * sortie,int *pos_data,int *numstr,int *numlab, int* table_label, int * table_addr);
 
+int trad_mips(FILE * sortie,struct quad* quad_table, int nextquad /*+ table des symboles*/);
+
 
 #endif

@@ -143,7 +143,7 @@ int handle_quad(int i, struct quad q, FILE * sortie,int *pos_data, int *numstr,i
             ecrit = fprintf(sortie, "   MOVE %s, %s\n", temp1, temp2);
             break;
         case Q_EXIT:
-            ecrit = fprintf(sortie,"    jr $ra\n");;
+            ecrit = fprintf(sortie,"jr $ra\n");;
             break;
         default:
             ecrit = fprintf(sortie, "   UNKNOWN\n");
@@ -153,7 +153,7 @@ int handle_quad(int i, struct quad q, FILE * sortie,int *pos_data, int *numstr,i
     return 0;
 }
 
-int trad_MIPS(FILE * sortie,struct quad* quad_table, int nextquad /*+ table des symboles*/){
+int trad_mips(FILE * sortie,struct quad* quad_table, int nextquad /*+ table des symboles*/){
     int pos_data = 0;
 
     int numstr = 0;
