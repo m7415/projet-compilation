@@ -22,8 +22,20 @@ struct quadop {
 };
 
 enum quad_kind { 
-    Q_IFEQ, // if op1 == op2 goto res
-    Q_IFDIFF, // if op1 != op2 goto res
+    // comparaisons arithmétiques
+    Q_IFEQ, // if op1 == op2 goto res   (-eq)
+    Q_IFDIFF, // if op1 != op2 goto res (-neq)
+    Q_IFGT, // if op1 > op2 goto res    (-gt)
+    Q_IFGE, // if op1 >= op2 goto res   (-ge)
+    Q_IFLT, // if op1 < op2 goto res    (-lt)
+    Q_IFLE, // if op1 <= op2 goto res   (-le)
+    // ----
+    // comparaisons de string
+    Q_IFNULL_STR, // if op1 == "" goto res    (-z)
+    Q_IFNOTNULL_STR, // if op1 != "" got res  (-n)
+    Q_IFEQ_STR, // if op1 == op2 goto res   ('=')
+    Q_IFDIFF_STR, // if op1 != op2 goto res ('!=')
+    // ----
     Q_GOTO, // goto res
     Q_GOTO_UNKNOWN, // goto ?? (normalement à la fin y en a pas)
     Q_BIDON, // bidon op1
@@ -51,6 +63,15 @@ struct quadop quadop_addr_unknown();
 
 struct quad quad_ifeq(struct quadop op1, struct quadop op2);
 struct quad quad_ifdiff(struct quadop op1, struct quadop op2);
+struct quad quad_ifgt(struct quadop op1, struct quadop op2);
+struct quad quad_ifge(struct quadop op1, struct quadop op2);
+struct quad quad_iflt(struct quadop op1, struct quadop op2);
+struct quad quad_ifle(struct quadop op1, struct quadop op2);
+struct quad quad_ifeq_str(struct quadop op1, struct quadop op2);
+struct quad quad_ifdiff_str(struct quadop op1, struct quadop op2);
+struct quad quad_ifnull_str(struct quadop op1);
+struct quad quad_ifnotnull_str(struct quadop op1);
+
 struct quad quad_goto(struct quadop addr);
 struct quad quad_goto_unknown();
 struct quad quad_bidon(int v);

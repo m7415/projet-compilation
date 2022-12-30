@@ -18,11 +18,18 @@
 #define DEBUG if(0)
 #endif
 
+// deux symboles qui sont toujours définis dans MIPS
+// dans ces variables, on charge la valeur convertis en entier des
+// opérandes dans la règle <operande> <op2> <operande> (-eq, -neq, -lt...)
+#define SYMB_OPERATEUR_2_GAUCHE ".op2_gauche"
+#define SYMB_OPERATEUR_2_DROITE ".op2_droite"
+
 extern int yylex();
 extern void yyerror(const char * msg);
 void gencode(struct quad q); // ajouter le quad à notre code
 void complete(struct list * l, size_t addr); // compléter les goto inconnus
 struct entry * new_temp(); // générer une nouvelle entry, renvoyer son pointeur
+int is_numeric(char * s); // renvois 1 si s est uniquement composé de chiffres de 0 à 9
 
 void fatal(const char * msg, ...); // affiche un msg d'erreur formaté (comme printf)
 // puis exit 1;
@@ -49,7 +56,15 @@ void complete(struct list * l, size_t addr) {
         DEBUG printf("%lu ", next->addr);
         if(global_code[next->addr].kind != Q_GOTO_UNKNOWN
         && global_code[next->addr].kind != Q_IFEQ
-        && global_code[next->addr].kind != Q_IFDIFF) {
+        && global_code[next->addr].kind != Q_IFDIFF
+        && global_code[next->addr].kind != Q_IFGT
+        && global_code[next->addr].kind != Q_IFGE
+        && global_code[next->addr].kind != Q_IFLT
+        && global_code[next->addr].kind != Q_IFLE
+        && global_code[next->addr].kind != Q_IFEQ_STR
+        && global_code[next->addr].kind != Q_IFDIFF_STR
+        && global_code[next->addr].kind != Q_IFNULL_STR
+        && global_code[next->addr].kind != Q_IFNOTNULL_STR) {
             fprintf(stderr, "ERREUR : complete un quad qui n'est pas unknown ?-?\n");
         }
         else {
@@ -88,12 +103,23 @@ void complete_single(int quad_num, size_t addr) {
 struct entry * new_temp() {
     // printf("call new_temp mais c'est pas encore fait, ça c'est padbol\n");
     char name[MAX_IDENT_SIZE]; // 32 chars, incluant le \0
-    int rand_nb = rand(); // nombre au hasard
-    snprintf(name, MAX_IDENT_SIZE, "_tmp_%010d%05d", rand_nb, nb_temp++);
-    // grace aux formats, on sait que name prend exactement 20 caractères (21 en comptant \0)
+    // int rand_nb = rand(); // nombre au hasard
+    snprintf(name, MAX_IDENT_SIZE, ".tmp_%d", nb_temp++);
+    // grace au "." au début (accepté par MIPS mais pas par SOS), on est sur que le programme n'utilisait pas ça
+    // et la numérotation assure l'unicité 
+    // (sauf si on dépasse 10^(MAX_IDENT_SIZE-6) variables temporaires...)
     DEBUG printf("nouvel ident (par new_temp) : '%s'\n",name);
     
     return create_entry(name, E_STR);
+}
+
+int is_numeric(char * s) {
+    for(int i=0; s[i] != '\0'; i++) {
+        if( s[i] != '\"' && s[i] != '\'' && (s[i] < '0' || s[i] > '9') ) {
+            return 0;
+        }
+    }
+    return 1;
 }
 
 
@@ -112,19 +138,17 @@ noreturn void fatal(const char *msg, ...)
 %union {
     char * strval;
     int intval;
-    // enum {
-    //   not_null,
-    //   null,
-    //   eq,
-    //   not_eq,
-    //   greater_than,
-    //   greater_equal,
-    //   less_than,
-    //   less_equal,
-    //   not,
-    //   and,
-    //   or
-    // } operande;
+    enum {
+      not_null,
+      null,
+      eq,
+      not_eq,
+      greater_than,
+      greater_equal,
+      less_than,
+      less_equal
+    } operateur1et2;
+
     char ident [MAX_IDENT_SIZE];
     char str [MAX_STRING_SIZE];
     struct {
@@ -175,7 +199,7 @@ noreturn void fatal(const char *msg, ...)
 %type<instr_type> liste_instructions instruction
 %type<else_part_type> else_part
 %type<intval> M G
-
+%type<operateur1et2> operateur1 operateur2
 
 %left '+' '-'
 %left '*' '/' '%'
@@ -190,6 +214,15 @@ programme : {
 
     ctx_stack = create_ctx_stack();
     liste_symbole = create_ctx_stack();
+
+    struct entry * e = create_entry(SYMB_OPERATEUR_2_GAUCHE, E_STR); 
+    newname(ctx_stack, e);
+    newname(liste_symbole, e);
+    gencode(quad_declare(quadop_ident(e->name)));
+    e = create_entry(SYMB_OPERATEUR_2_DROITE, E_STR); 
+    newname(ctx_stack, e);
+    newname(liste_symbole, e);
+    gencode(quad_declare(quadop_ident(e->name)));
 
     } liste_instructions {
     free_ctx_stack(ctx_stack, 0);
@@ -344,11 +377,11 @@ else_part
     // list_print($$.next); // WTF (ça a l'air de s'etre calmé mtn...)
     // printf("\n");
 }
-| G KW_ELSE M liste_instructions M {
+| G KW_ELSE M liste_instructions {
     $$.type = else_else;
     $$.debut_instr = $3;
     struct list * tmp2 = list_creer($1);
-    $$.next = list_concat($$.next, tmp2);
+    $$.next = list_concat($4.next, tmp2);
 }
 | %empty {
     $$.type = else_empty;
@@ -451,7 +484,7 @@ test_expr3
 test_instruction
 : concatenation EQUAL concatenation {
     $$.true = list_creer(nextquad);
-    struct quad q = quad_ifeq($1.res, $3.res);
+    struct quad q = quad_ifeq_str($1.res, $3.res);
     gencode(q);
 
     $$.false = list_creer(nextquad);
@@ -466,15 +499,100 @@ test_instruction
 }
 | concatenation NOT_EQUAL concatenation {
     $$.true = list_creer(nextquad);
-    struct quad q = quad_ifdiff($1.res, $3.res);
+    struct quad q = quad_ifdiff_str($1.res, $3.res);
     gencode(q);
 
     $$.false = list_creer(nextquad);
     struct quad q2 = quad_goto_unknown();
     gencode(q2);
 }
-| operateur1 concatenation {}
-| operande operateur2 operande {}
+| operateur1 concatenation {
+    if( $1 == null ) {
+        $$.true = list_creer(nextquad);
+        struct quad q = quad_ifnull_str($2.res);
+        gencode(q);
+        $$.false = list_creer(nextquad);
+        struct quad q2 = quad_goto_unknown(nextquad);
+        gencode(q2);
+    }
+    else if( $1 == not_null ) {
+        $$.true = list_creer(nextquad);
+        struct quad q = quad_ifnotnull_str($2.res);
+        gencode(q);
+        $$.false = list_creer(nextquad);
+        struct quad q2 = quad_goto_unknown(nextquad);
+        gencode(q2);
+    }
+    else {
+        fatal("Error (invalid operateur1)\n");
+    }
+}
+| operande operateur2 operande {
+    // vérification que c'est des entiers
+    // si ce sont des constantes, on peut vérifier dès maintenant
+    if( $1.res.kind == QO_CST_STRING ) {
+        if( is_numeric($1.res.cst_str) == 0 ) {
+            fatal("Erreur : valeur (gauche) constante non convertissable en entier : '%s'\n", $1.res.cst_str);
+        }
+    }
+    if( $3.res.kind == QO_CST_STRING ) {
+        if( is_numeric($3.res.cst_str) == 0 ) {
+            fatal("Erreur : valeur (droite) constante non convertissable en entier : '%s'\n", $3.res.cst_str);
+        }
+    }
+    // sinon, on doit faire la vérif au moment de l'exécution
+    // dans la petite librairie MIPS qu'on a écrit, notre fonction
+    // 'convert_entier' fait la vérification, et arrete l'exécution si besoin
+    // donc générer les quads pour charger les valeurs de $1 et $3 fait
+    // la vérification
+
+    if( $2 == eq ) {
+        $$.true = list_creer(nextquad);
+        struct quad q = quad_ifeq($1.res, $3.res);
+        gencode(q);
+        $$.false = list_creer(nextquad);
+        struct quad q2 = quad_goto_unknown(nextquad);
+        gencode(q2);
+    } else if ( $2 == not_eq ) {
+        $$.true = list_creer(nextquad);
+        struct quad q = quad_ifdiff($1.res, $3.res);
+        gencode(q);
+        $$.false = list_creer(nextquad);
+        struct quad q2 = quad_goto_unknown(nextquad);
+        gencode(q2);
+    } else if ( $2 == greater_than ) {
+        $$.true = list_creer(nextquad);
+        struct quad q = quad_ifgt($1.res, $3.res);
+        gencode(q);
+        $$.false = list_creer(nextquad);
+        struct quad q2 = quad_goto_unknown(nextquad);
+        gencode(q2);        
+    } else if ( $2 == greater_equal ) {
+        $$.true = list_creer(nextquad);
+        struct quad q = quad_ifge($1.res, $3.res);
+        gencode(q);
+        $$.false = list_creer(nextquad);
+        struct quad q2 = quad_goto_unknown(nextquad);
+        gencode(q2);
+    } else if ( $2 == less_than ) {
+        $$.true = list_creer(nextquad);
+        struct quad q = quad_iflt($1.res, $3.res);
+        gencode(q);
+        $$.false = list_creer(nextquad);
+        struct quad q2 = quad_goto_unknown(nextquad);
+        gencode(q2);
+
+    } else if ( $2 == less_equal ) {
+        $$.true = list_creer(nextquad);
+        struct quad q = quad_ifle($1.res, $3.res);
+        gencode(q);
+        $$.false = list_creer(nextquad);
+        struct quad q2 = quad_goto_unknown(nextquad);
+        gencode(q2);
+    } else {
+        fatal("Error (invalid operateur2)\n");
+    }
+}
 ;
 
 liste_operandes
@@ -521,17 +639,17 @@ operande
 ;
 
 operateur1
-: OP_NOT_NULL {}
-| OP_NULL {}
+: OP_NOT_NULL { $$ = not_null; }
+| OP_NULL { $$ = null; }
 ;
 
 operateur2
-: OP_EQ {}
-| OP_NEQ {}
-| OP_GT {}
-| OP_GE {}
-| OP_LT {}
-| OP_LE {}
+: OP_EQ { $$ = eq; }
+| OP_NEQ { $$ = not_eq; }
+| OP_GT { $$ = greater_than; }
+| OP_GE { $$ = greater_equal; }
+| OP_LT { $$ = less_than; }
+| OP_LE { $$ = less_equal; }
 ;
 
 

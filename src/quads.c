@@ -32,6 +32,68 @@ void print_quad(struct quad q, FILE * file_) {
         fprintf(file, " GOTO ");
         print_quadop(q.res, file);
     }
+    else if(q.kind == Q_IFGT) {
+        fprintf(file, "IF ");
+        print_quadop(q.op1, file);
+        fprintf(file, " > ");
+        print_quadop(q.op2, file);
+        fprintf(file, " GOTO ");
+        print_quadop(q.res, file);
+    }
+    else if(q.kind == Q_IFGE) {
+        fprintf(file, "IF ");
+        print_quadop(q.op1, file);
+        fprintf(file, " >= ");
+        print_quadop(q.op2, file);
+        fprintf(file, " GOTO ");
+        print_quadop(q.res, file);
+    }
+    else if(q.kind == Q_IFLT) {
+        fprintf(file, "IF ");
+        print_quadop(q.op1, file);
+        fprintf(file, " < ");
+        print_quadop(q.op2, file);
+        fprintf(file, " GOTO ");
+        print_quadop(q.res, file);
+    }
+    else if(q.kind == Q_IFLE) {
+        fprintf(file, "IF ");
+        print_quadop(q.op1, file);
+        fprintf(file, " <= ");
+        print_quadop(q.op2, file);
+        fprintf(file, " GOTO ");
+        print_quadop(q.res, file);
+    }
+    else if(q.kind == Q_IFEQ_STR) {
+        fprintf(file, "IF ");
+        print_quadop(q.op1, file);
+        fprintf(file, " ==(str) ");
+        print_quadop(q.op2, file);
+        fprintf(file, " GOTO ");
+        print_quadop(q.res, file);
+    }
+    else if(q.kind == Q_IFDIFF_STR) {
+        fprintf(file, "IF ");
+        print_quadop(q.op1, file);
+        fprintf(file, " !=(str) ");
+        print_quadop(q.op2, file);
+        fprintf(file, " GOTO ");
+        print_quadop(q.res, file);
+    }
+    else if(q.kind == Q_IFNULL_STR) {
+        fprintf(file, "IF ");
+        print_quadop(q.op1, file);
+        fprintf(file, " == \"\" (null)");
+        fprintf(file, " GOTO ");
+        print_quadop(q.res, file);
+    }
+    else if(q.kind == Q_IFNOTNULL_STR) {
+        fprintf(file, "IF ");
+        print_quadop(q.op1, file);
+        fprintf(file, " != \"\" (not null)");
+        fprintf(file, " GOTO ");
+        print_quadop(q.res, file);
+    }
     else if(q.kind == Q_SET) {
         fprintf(file, "SET ");
         print_quadop(q.res, file);
@@ -174,6 +236,69 @@ struct quad quad_ifdiff(struct quadop op1, struct quadop op2) {
     q.op2 = op2;
     return q;
 }
+struct quad quad_ifgt(struct quadop op1, struct quadop op2) {
+    struct quad q;
+    q.kind = Q_IFGT;
+    q.res = quadop_addr_unknown();
+    q.op1 = op1;
+    q.op2 = op2;
+    return q;
+}
+struct quad quad_ifge(struct quadop op1, struct quadop op2) {
+    struct quad q;
+    q.kind = Q_IFGE;
+    q.res = quadop_addr_unknown();
+    q.op1 = op1;
+    q.op2 = op2;
+    return q;
+}
+struct quad quad_iflt(struct quadop op1, struct quadop op2) {
+    struct quad q;
+    q.kind = Q_IFLT;
+    q.res = quadop_addr_unknown();
+    q.op1 = op1;
+    q.op2 = op2;
+    return q;
+}
+struct quad quad_ifle(struct quadop op1, struct quadop op2) {
+    struct quad q;
+    q.kind = Q_IFLE;
+    q.res = quadop_addr_unknown();
+    q.op1 = op1;
+    q.op2 = op2;
+    return q;
+}
+struct quad quad_ifeq_str(struct quadop op1, struct quadop op2) {
+    struct quad q;
+    q.kind = Q_IFEQ_STR;
+    q.res = quadop_addr_unknown();
+    q.op1 = op1;
+    q.op2 = op2;
+    return q;
+}
+struct quad quad_ifdiff_str(struct quadop op1, struct quadop op2) {
+    struct quad q;
+    q.kind = Q_IFDIFF_STR;
+    q.res = quadop_addr_unknown();
+    q.op1 = op1;
+    q.op2 = op2;
+    return q;
+}
+struct quad quad_ifnull_str(struct quadop op1) {
+    struct quad q;
+    q.kind = Q_IFNULL_STR;
+    q.res = quadop_addr_unknown();
+    q.op1 = op1;
+    return q;
+}
+struct quad quad_ifnotnull_str(struct quadop op1) {
+    struct quad q;
+    q.kind = Q_IFNOTNULL_STR;
+    q.res = quadop_addr_unknown();
+    q.op1 = op1;
+    return q;
+}
+
 
 struct quad quad_goto(struct quadop addr) {
     struct quad q;
