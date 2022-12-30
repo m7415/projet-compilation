@@ -391,7 +391,15 @@ test_bloc : KW_TEST test_expr {
 }
 
 test_expr 
-: test_expr LOGIC_OR test_expr2 {}
+: test_expr LOGIC_OR M test_expr2 {
+    complete($1.false, $3);
+    list_free($1.false);
+    $$.true = list_concat($1.true, $4.true);
+    /*
+Un goto inutile ici (qui pointe vers l'instruction suivante)
+    */
+    $$.false = $4.false;
+}
 | test_expr2 {
     $$.true = NULL;
     $$.true = list_concat($$.true, $1.true);
@@ -401,7 +409,12 @@ test_expr
 ;
 
 test_expr2
-: test_expr2 LOGIC_AND test_expr3 {}
+: test_expr2 LOGIC_AND M test_expr3 {
+    complete($1.true, $3); // si vrai à gauche, test à droite
+    list_free($1.true);
+    $$.true = $4.true; // si le 2e test est vrai, la condition est vraie
+    $$.false = list_concat($1.false, $4.false);
+}
 | test_expr3 {
     $$.true = NULL;
     $$.true = list_concat($$.true, $1.true);
@@ -413,7 +426,10 @@ test_expr2
 ;
 
 test_expr3
-: O_PAR test_expr C_PAR {}
+: O_PAR test_expr C_PAR {
+    $$.true = $2.true;
+    $$.false = $2.false;
+}
 | LOGIC_NOT O_PAR test_expr C_PAR {}
 | test_instruction  {
     $$.true = NULL;
