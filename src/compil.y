@@ -267,8 +267,25 @@ instruction
     list_free($6.next);
 
     $$.next = NULL;
-    // $$.next = list_concat($$.next, $6.next);
     $$.next = list_concat($$.next, $3.false);
+}
+/*
+Pour until, le test_bloc génère un goto qui est inutile
+Parce que si la condition est vraie, alors on sort (next)
+Sinon on continue, mais on a un goto qui pointe vers le quad suivant
+C'est pas très grave, on peut imaginer une optimisation qui supprimerait
+les goto qui pointent vers le quad juste après eux
+*/
+| KW_UNTIL M test_bloc KW_DO M liste_instructions G KW_DONE {
+    complete($3.false, $5);
+    list_free($3.false);
+    complete_single($7, $2);
+
+    complete($6.next, $2);
+    list_free($6.next);
+
+    $$.next = NULL;
+    $$.next = list_concat($$.next, $3.true);
 }
 | KW_ECHO liste_operandes {
     struct quad q = quad_echo($2.res);
