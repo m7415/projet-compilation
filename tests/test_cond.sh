@@ -1,10 +1,10 @@
 echo "début";
 
-if test a = b -a c = d
+if test !(a = b -a c = d)
 then
     echo "wow un and insane";
     echo "enfin bon"
-elif test g=h -o i = j
+elif test g=h -o ! i = j
 then
     echo "un elif avec un or ??"
 fi;

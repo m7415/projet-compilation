@@ -430,7 +430,10 @@ test_expr3
     $$.true = $2.true;
     $$.false = $2.false;
 }
-| LOGIC_NOT O_PAR test_expr C_PAR {}
+| LOGIC_NOT O_PAR test_expr C_PAR {
+    $$.true = $3.false;
+    $$.false = $3.true;
+}
 | test_instruction  {
     $$.true = NULL;
     $$.true = list_concat($$.true, $1.true);
@@ -439,7 +442,10 @@ test_expr3
     $$.false = list_concat($$.false, $1.false);
     // list_free($1.false);
 }
-| LOGIC_NOT test_instruction {}
+| LOGIC_NOT test_instruction {
+    $$.true = $2.false;
+    $$.false = $2.true;
+}
 ;
 
 test_instruction
