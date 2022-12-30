@@ -9,6 +9,15 @@
 #include "compil.tab.h"
 #include "ll-list.h"
 
+// #define PRINT_DEBUG // COMMENTER CA POUR RETIRER LES DEBUG
+
+
+#ifdef PRINT_DEBUG
+#define DEBUG if(1)
+#else
+#define DEBUG if(0)
+#endif
+
 extern int yylex();
 extern void yyerror(const char * msg);
 void gencode(struct quad q); // ajouter le quad à notre code
@@ -35,9 +44,9 @@ void gencode(struct quad q) {
 
 void complete(struct list * l, size_t addr) {
     struct list * next = l;
-    printf("completing quads n° ");
+    DEBUG printf("completing quads n° ");
     while(next != NULL) {
-        printf("%lu ", next->addr);
+        DEBUG printf("%lu ", next->addr);
         if(global_code[next->addr].kind != Q_GOTO_UNKNOWN
         && global_code[next->addr].kind != Q_IFEQ
         && global_code[next->addr].kind != Q_IFDIFF) {
@@ -52,7 +61,7 @@ void complete(struct list * l, size_t addr) {
         }
         next = next->next;
     }
-    printf("with %lu\n", addr);
+    DEBUG printf("with %lu\n", addr);
 }
 
 void complete_single(int quad_num, size_t addr) {
@@ -67,7 +76,7 @@ void complete_single(int quad_num, size_t addr) {
         fprintf(stderr, "ERREUR : complete un quad qui n'est pas unknown ?-?\n");
     }
     else {
-        printf("completing quad n° %i with %lu\n", quad_num, addr);
+        DEBUG printf("completing quad n° %i with %lu\n", quad_num, addr);
         global_code[quad_num].res.addr = addr;
         global_code[quad_num].res.kind = QO_ADDR;
         if( global_code[quad_num].kind == Q_GOTO_UNKNOWN ) {
@@ -82,7 +91,7 @@ struct entry * new_temp() {
     int rand_nb = rand(); // nombre au hasard
     snprintf(name, MAX_IDENT_SIZE, "_tmp_%010d%05d", rand_nb, nb_temp++);
     // grace aux formats, on sait que name prend exactement 20 caractères (21 en comptant \0)
-    printf("nouvel ident (par new_temp) : '%s'\n",name);
+    DEBUG printf("nouvel ident (par new_temp) : '%s'\n",name);
     
     return create_entry(name, E_STR);
 }
@@ -208,7 +217,7 @@ liste_instructions
 
 instruction
 : IDENTIFIER EQUAL concatenation {
-    printf("declaration ident : '%s'\n", $1);
+    DEBUG printf("declaration ident : '%s'\n", $1);
 
     struct quadop ident = quadop_ident($1);
 
@@ -254,9 +263,9 @@ instruction
     // list_print($6.next);
     // printf("\n");
 
-    printf("if.next : ");
-    list_print($$.next);
-    printf("\n");
+    DEBUG printf("if.next : ");
+    DEBUG list_print($$.next);
+    DEBUG printf("\n");
 }
 | KW_WHILE M test_bloc KW_DO M liste_instructions G KW_DONE {
     complete($3.true, $5);
@@ -427,11 +436,11 @@ test_instruction
     struct quad q2 = quad_goto_unknown();
     gencode(q2);
 
-    printf("true : ");
-    list_print($$.true);
-    printf("\nfalse : ");
-    list_print($$.false);
-    printf("\n");
+    DEBUG printf("true : ");
+    DEBUG list_print($$.true);
+    DEBUG printf("\nfalse : ");
+    DEBUG list_print($$.false);
+    DEBUG printf("\n");
 }
 | concatenation NOT_EQUAL concatenation {
     $$.true = list_creer(nextquad);
@@ -458,7 +467,7 @@ liste_operandes
 
 operande
 : ACCES_VARIABLE {
-    printf("accès à la variable : %s\n", $1);
+    DEBUG printf("accès à la variable : %s\n", $1);
     struct entry * e = lookup(ctx_stack, $1);
     if( e == NULL ) {
         fatal("Erreur : accès à une variable non définie : '%s'\n", $1);
