@@ -24,8 +24,14 @@ endstrlen:
 
 
 concat:
-    # a0 and a1 are adresses to 2 strings
-    # after the call, v0 will contain
+    # arguments :
+    # a0 : adresse du string où sera stocké le résultat
+    # a1 et a2 : adresses des strings à concaténer
+
+    # retour :
+    # v0 : taille du string résultant (pas forcement utile mais voilà)
+    # a0 contient toujours la meme adresse qu'au début, mais maintenant
+    #    c'est la concaténation de a1 et a2
 
     # li $v0, 4
     # la $a0, strconcat
@@ -58,34 +64,31 @@ concat:
 
     move $s0, $a0
     move $s1, $a1
+    move $s2, $a2
 
 
     # sub $sp, $sp, 8 # faire de l'espace dans le stack pour sauvegarder ce qui
     # # risque de partir avec jal, et dont on se sert
     # sw $a0, 0($sp)
     # sw $a1, 4($sp)
-    move $a0, $s0
+    move $a0, $s1
     jal strlen # call strlen sur $a0 (notre premier string)
     # lw $a0, 0($sp)
     # lw $a1, 4($sp)
     # addi $sp, $sp, 8
     # > sauvegarde pas utile puisqu'on a chargé nos arguments sans $s0 et $s1
 
-    li $s2, 0  # initaliser à 0 $s2, qui contiendra la somme des tailles des strings
-    add $s2, $s2, $v0 # 
+    li $s3, 0  # initaliser à 0 $s3, qui contiendra la somme des tailles des strings
+    add $s3, $s3, $v0 # 
 
-    move $a0, $s1 # mettre le 2e string dans $a0
+    move $a0, $s2 # mettre le 2e string dans $a0
     jal strlen # call strlen sur $a0 (maintenant notre 2e string)
 
-    add $s2, $s2, $v0
+    add $s3, $s3, $v0
 
-    li $v0, 9 # code pour sbrk (allouer $a0 bytes de mémoire)
-    move $a0, $s2
-    addi $a0, $a0, 1 # +1 pour le \0 final
-    syscall
-    move $s3, $v0 # $s3 est notre pointeur qui a la bonne taille
-    move $t0, $s0 # $t0 pointe au début du premier string
-    move $t3, $s3 # $t3 pointe au début du string résultat
+    
+    move $t0, $s1 # $t0 pointe au début du premier string
+    move $t3, $s0 # $t3 pointe au début du string résultat
 concat_loop1:
     lb $t1, 0($t0)
     beqz $t1, concat_loop1_end # si on est arrivé au bout, on sort
@@ -95,7 +98,7 @@ concat_loop1:
     j concat_loop1
 concat_loop1_end:
 
-    move $t0, $s1 # $t0 pointe maintenant au début du 2e string
+    move $t0, $s2 # $t0 pointe maintenant au début du 2e string
 concat_loop2:
     lb $t1, 0($t0)
     beqz $t1, concat_loop2_end
@@ -109,18 +112,7 @@ concat_loop2_end:
     sb $zero, 0($t3) # bien terminer le résultat
 
 
-    # li $v0, 1
-    # move $a0, $s3
-    # syscall
-    # li $v0, 4
-    # la $a0, linefeed
-    # syscall
-    # li $v0, 1
-    # move $a0, $t3
-    # syscall
-
-    move $v0, $s3 # renvoyer $s3 = le string concaténé
-    move $v1, $s2 # renvoyer $s2 = somme les longueurs des 2 strings
+    move $v0, $s3 # renvoyer $s3 = somme les longueurs des 2 strings
     lw $ra, 0($sp) # restaurer
     lw $s0, 4($sp)
     lw $s1, 8($sp)
