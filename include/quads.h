@@ -36,6 +36,14 @@ enum quad_kind {
     Q_IFEQ_STR, // if op1 == op2 goto res   ('=')
     Q_IFDIFF_STR, // if op1 != op2 goto res ('!=')
     // ----
+    // opérations arithmétiques
+    Q_ADD, // res <- op1 + op2
+    Q_SUB, // res <- op1 - op2
+    Q_MUL, // res <- op1 * op2
+    Q_DIV, // res <- op1 // op2
+    Q_MOD, // res <- op1 % op2 (reste de div)
+    Q_INV_SIGNE, // res <- (-1)*op1
+    // ----
     Q_GOTO, // goto res
     Q_GOTO_UNKNOWN, // goto ?? (normalement à la fin y en a pas)
     Q_BIDON, // bidon op1
@@ -71,6 +79,13 @@ struct quad quad_ifeq_str(struct quadop op1, struct quadop op2);
 struct quad quad_ifdiff_str(struct quadop op1, struct quadop op2);
 struct quad quad_ifnull_str(struct quadop op1);
 struct quad quad_ifnotnull_str(struct quadop op1);
+
+struct quad quad_add(struct quadop res, struct quadop op1, struct quadop op2);
+struct quad quad_sub(struct quadop res, struct quadop op1, struct quadop op2);
+struct quad quad_mul(struct quadop res, struct quadop op1, struct quadop op2);
+struct quad quad_div(struct quadop res, struct quadop op1, struct quadop op2);
+struct quad quad_mod(struct quadop res, struct quadop op1, struct quadop op2);
+struct quad quad_inv_signe(struct quadop res, struct quadop op1);
 
 struct quad quad_goto(struct quadop addr);
 struct quad quad_goto_unknown();

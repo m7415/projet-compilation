@@ -53,8 +53,26 @@ expr    { return KW_EXPR    ;}
     return STRING_SINGLE_QUOTE;
 }
 
-"+"|"-" { return PLUS_OU_MOINS ;}
-"*"|"/"|"%" { return FOIS_DIV_MOD ;}
+"+" {
+    yylval.op_arithm = op_add;
+    return PLUS_OU_MOINS ;
+}
+"-" {
+    yylval.op_arithm = op_sub;
+    return PLUS_OU_MOINS ;
+}
+"*" {
+    yylval.op_arithm = op_mul;
+    return FOIS_DIV_MOD ;
+}
+"/" {
+    yylval.op_arithm = op_div;
+    return FOIS_DIV_MOD ;
+}
+"%" {
+    yylval.op_arithm = op_mod;
+    return FOIS_DIV_MOD ;
+}
 "["   { return O_BRACKET ;}
 "]"   { return C_BRACKET ;}
 "{"   { return O_CURLY_BRACKET ;}

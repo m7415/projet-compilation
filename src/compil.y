@@ -148,6 +148,14 @@ noreturn void fatal(const char *msg, ...)
       less_than,
       less_equal
     } operateur1et2;
+    enum {
+        op_add,
+        op_sub,
+        op_mul,
+        op_div,
+        op_mod,
+        op_none
+    } op_arithm;
 
     char ident [MAX_IDENT_SIZE];
     char str [MAX_STRING_SIZE];
@@ -184,7 +192,7 @@ noreturn void fatal(const char *msg, ...)
 %token EQUAL NOT_EQUAL
 %token OP_NOT_NULL OP_NULL OP_EQ OP_NEQ OP_GT OP_GE OP_LT OP_LE
 %token LOGIC_NOT LOGIC_AND LOGIC_OR
-%token PLUS_OU_MOINS FOIS_DIV_MOD
+%token<op_arithm> PLUS_OU_MOINS FOIS_DIV_MOD
 %token O_PAR C_PAR O_BRACKET C_BRACKET O_CURLY_BRACKET C_CURLY_BRACKET SEMICOLON
 %token DOLLAR
 %token QUESTION_MARK
@@ -195,11 +203,13 @@ noreturn void fatal(const char *msg, ...)
 %token<intval> LAST_FUNC_STATUS
 
 %type<expr> concatenation operande liste_operandes
+%type<expr> somme_entier produit_entier operande_entier
 %type<boolexpr> test_bloc test_expr test_expr2 test_expr3 test_instruction
 %type<instr_type> liste_instructions instruction
 %type<else_part_type> else_part
 %type<intval> M G
 %type<operateur1et2> operateur1 operateur2
+%type<op_arithm> opt_plus_ou_moins
 
 %left '+' '-'
 %left '*' '/' '%'
@@ -629,11 +639,13 @@ operande
 | ACCES_LISTE_ARG {}
 | LAST_FUNC_STATUS {}
 | STRING_DOUBLE_QUOTE {
-
     $$.res = quadop_cst_string($1);
 }
 | STRING_SINGLE_QUOTE {
     $$.res = quadop_cst_string($1);
+}
+| DOLLAR O_PAR KW_EXPR somme_entier C_PAR {
+    $$.res = $4.res;
 }
 /* il manque les $( expr ... ) et $( function call ) */
 ;
@@ -652,7 +664,103 @@ operateur2
 | OP_LE { $$ = less_equal; }
 ;
 
+somme_entier
+: somme_entier PLUS_OU_MOINS produit_entier {
+    struct entry * res = new_temp();
+    newname(ctx_stack, res);
+    newname(liste_symbole, res);
+    struct quadop ident_res = quadop_ident(res->name);
+    gencode(quad_declare(ident_res));
+    if($2 == op_add) {
+        gencode( quad_add(ident_res, $1.res, $3.res) );
+    }
+    else if($2 == op_sub) {
+        gencode (quad_sub(ident_res, $1.res, $3.res) );
+    }
+    else {
+        fatal("Erreur opérateur plus_ou_moins (bizarre)\n");
+    }
+    $$.res = ident_res;
+}
+| produit_entier {
+    $$.res = $1.res;
+}
+;
 
+produit_entier
+: produit_entier FOIS_DIV_MOD operande_entier {
+    struct entry * res = new_temp();
+    newname(ctx_stack, res);
+    newname(liste_symbole, res);
+    struct quadop ident_res = quadop_ident(res->name);
+    gencode(quad_declare(ident_res));
+    if($2 == op_mul) {
+        gencode( quad_mul(ident_res, $1.res, $3.res) );
+    }
+    else if($2 == op_div) {
+        gencode (quad_div(ident_res, $1.res, $3.res) );
+    }
+    else if($2 == op_mod) {
+        gencode (quad_mod(ident_res, $1.res, $3.res) );
+    }
+    else {
+        fatal("Erreur opérateur fois_div_mod (bizarre)\n");
+    }
+    $$.res = ident_res;
+}
+| operande_entier {
+    $$.res = $1.res;
+}
+;
+
+operande_entier
+: opt_plus_ou_moins ACCES_VARIABLE {
+    DEBUG printf("(op_entier) accès à la variable : %s\n", $2);
+    struct entry * e = lookup(ctx_stack, $2);
+    if( e == NULL ) {
+        fatal("Erreur : accès à une variable non définie : '%s'\n", $2);
+    }
+    struct quadop ident = quadop_ident(e->name);
+    if($1 != op_sub) { // rien, ou un '+'
+        $$.res = ident;
+    }
+    else { // un '-'
+        struct entry * inv = new_temp();
+        newname(ctx_stack, inv);
+        newname(liste_symbole, inv);
+        struct quadop ident_inv = quadop_ident(inv->name);
+        gencode(quad_declare(ident_inv));
+        gencode(quad_inv_signe(ident_inv, ident));
+        $$.res = ident_inv;
+    }
+}
+| opt_plus_ou_moins ACCES_ELEM_TABLEAU {}
+| opt_plus_ou_moins ACCES_ARG {}
+| opt_plus_ou_moins MOT { 
+    if( is_numeric($2) == 0 ) {
+        fatal("Erreur : valeur constante non convertissable en entier : '%s'\n", $1);
+    }
+    struct quadop val = quadop_cst_string($2);
+    if( $1 != op_sub ) {
+        $$.res = val;
+    }
+    else {
+        struct entry * inv = new_temp();
+        newname(ctx_stack, inv);
+        newname(liste_symbole, inv);
+        struct quadop ident_inv = quadop_ident(inv->name);
+        gencode(quad_declare(ident_inv));
+        gencode(quad_inv_signe(ident_inv, val));
+        $$.res = ident_inv;
+    }
+}
+| O_PAR somme_entier C_PAR {
+    $$.res = $2.res;
+}
+
+opt_plus_ou_moins
+: PLUS_OU_MOINS { $$ = $1; }
+| %empty { $$ = op_none; }
 
 %%
 

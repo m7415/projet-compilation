@@ -94,6 +94,52 @@ void print_quad(struct quad q, FILE * file_) {
         fprintf(file, " GOTO ");
         print_quadop(q.res, file);
     }
+    else if(q.kind == Q_ADD) {
+        fprintf(file, "SET ");
+        print_quadop(q.res, file);
+        fprintf(file, " TO ");
+        print_quadop(q.op1, file);
+        fprintf(file, " + ");
+        print_quadop(q.op2, file);
+    }
+    else if(q.kind == Q_SUB) {
+        fprintf(file, "SET ");
+        print_quadop(q.res, file);
+        fprintf(file, " TO ");
+        print_quadop(q.op1, file);
+        fprintf(file, " - ");
+        print_quadop(q.op2, file);
+    }
+    else if(q.kind == Q_MUL) {
+        fprintf(file, "SET ");
+        print_quadop(q.res, file);
+        fprintf(file, " TO ");
+        print_quadop(q.op1, file);
+        fprintf(file, " * ");
+        print_quadop(q.op2, file);
+    }
+    else if(q.kind == Q_DIV) {
+        fprintf(file, "SET ");
+        print_quadop(q.res, file);
+        fprintf(file, " TO ");
+        print_quadop(q.op1, file);
+        fprintf(file, " / ");
+        print_quadop(q.op2, file);
+    }
+    else if(q.kind == Q_MOD) {
+        fprintf(file, "SET ");
+        print_quadop(q.res, file);
+        fprintf(file, " TO ");
+        print_quadop(q.op1, file);
+        fprintf(file, " %% ");
+        print_quadop(q.op2, file);
+    }
+    else if(q.kind == Q_INV_SIGNE) {
+        fprintf(file, "SET ");
+        print_quadop(q.res, file);
+        fprintf(file, " TO (-1) * ");
+        print_quadop(q.op1, file);
+    }
     else if(q.kind == Q_SET) {
         fprintf(file, "SET ");
         print_quadop(q.res, file);
@@ -299,6 +345,53 @@ struct quad quad_ifnotnull_str(struct quadop op1) {
     return q;
 }
 
+struct quad quad_add(struct quadop res, struct quadop op1, struct quadop op2) {
+    struct quad q;
+    q.kind = Q_ADD;
+    q.res = res;
+    q.op1 = op1;
+    q.op2 = op2;
+    return q;
+}
+struct quad quad_sub(struct quadop res, struct quadop op1, struct quadop op2) {
+    struct quad q;
+    q.kind = Q_SUB;
+    q.res = res;
+    q.op1 = op1;
+    q.op2 = op2;
+    return q;
+}
+struct quad quad_mul(struct quadop res, struct quadop op1, struct quadop op2) {
+    struct quad q;
+    q.kind = Q_MUL;
+    q.res = res;
+    q.op1 = op1;
+    q.op2 = op2;
+    return q;
+}
+struct quad quad_div(struct quadop res, struct quadop op1, struct quadop op2) {
+    struct quad q;
+    q.kind = Q_DIV;
+    q.res = res;
+    q.op1 = op1;
+    q.op2 = op2;
+    return q;
+}
+struct quad quad_mod(struct quadop res, struct quadop op1, struct quadop op2) {
+    struct quad q;
+    q.kind = Q_MOD;
+    q.res = res;
+    q.op1 = op1;
+    q.op2 = op2;
+    return q;
+}
+struct quad quad_inv_signe(struct quadop res, struct quadop op1) {
+    struct quad q;
+    q.kind = Q_INV_SIGNE;
+    q.res = res;
+    q.op1 = op1;
+    return q;
+}
 
 struct quad quad_goto(struct quadop addr) {
     struct quad q;
