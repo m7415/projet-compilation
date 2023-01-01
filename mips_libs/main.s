@@ -20,7 +20,12 @@
 
 main:
 #-----------------------------------
-    la $s0, str5
+
+    # la $a0, str3
+    # li $a1, 15468
+    # j erreur_out_of_range
+
+    la $s0, str5    
 
     move $a0, $s0 # chargement de l'argument
     jal convert_entier

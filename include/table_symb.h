@@ -10,15 +10,17 @@
 
 
 enum entry_type {
-    E_INT,
-    E_BOOL,
+    E_INT,  // inutilisé
+    E_BOOL, // inutilisé
     E_FUNC,
-    E_STR
+    E_STR,
+    E_TAB
 };
 
 struct entry {
     enum entry_type type;
     char name[MAX_IDENT_SIZE];
+    int taille; // pour les E_TAB
 };
 
 struct ctx_stack; 
@@ -47,8 +49,12 @@ void popctx(struct ctx_stack * ctx_stack, int free_entries);
 // ajoute une entry au contexte actuel
 void newname(struct ctx_stack * ctx_stack, struct entry * new_entry);
 
+// ajoute une entry globale (dans le ctx le plus large)
+void newname_global(struct ctx_stack * ctx_stack, struct entry * new_entry);
+
 // créé et renvois un stack de contexte
 struct ctx_stack * create_ctx_stack(void);
+
 
 // libère la mémoire allouée pour le stack
 // si free_entries = 1, ça libère la mémoire des entries

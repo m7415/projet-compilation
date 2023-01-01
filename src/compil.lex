@@ -121,29 +121,11 @@ expr    { return KW_EXPR    ;}
 
 \$\{{IDENT}\[\*\]\} {
     // printf("accès tout les elems d'un tableau : (%s)\n", yytext);
+    strncpy(yylval.str, yytext+2, MAX_STRING_SIZE);
+    yylval.str[ strlen(yylval.str) -4 ] = '\0'; // supprimer le '[*]}'
     return ACCES_LISTE_TABLEAU;
 }
 
-\$\{{IDENT}\[[0-9]+\]\} {
-    /*
-    CETTE REGLE EST PAS BONNE !!!!!
-    parce que l'index d'un tableau peut etre une expression compliquée, c'est
-    pas forcément une constante...
-    > dans les règles, ${id[<opérande entier>]} devient le terminal ACCES_ELEM_TABLEAU
-    
-    Pour l'instant on peut laisser comme ça, mais
-    dans le futur, il faudrait détécter 
-        > le terminal ${    \
-        > le terminal id     > un seul (nouveau) terminal pour ça ? 
-        > le terminal [     /
-        > <opérance_entier>
-        > le terminal ]
-    */
-
-    // un peu pénible pour récupérer l'index, mais bon
-    // printf("accès elem tableau : (%s)\n", yytext);
-    return ACCES_ELEM_TABLEAU;
-}
 
 \$[0-9]+ {
     // printf("accès argument : ( %s )\n", yytext);

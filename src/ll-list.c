@@ -94,6 +94,7 @@ void qo_list_print(struct qo_list * l) {
     struct qo_list * next = l;
     while(next != NULL) {
         print_quadop(next->val, NULL);
+        printf(" | ");
         next = next->next;
     }
 }

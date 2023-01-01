@@ -67,6 +67,19 @@ void newname(struct ctx_stack * ctx_stack, struct entry * new_entry) {
     ctx->nb_entry++;
 }
 
+void newname_global(struct ctx_stack * ctx_stack, struct entry * new_entry) {
+    if(ctx_stack->head == NULL) {
+        printf("pbme ctx_stack\n");
+        return;
+    }
+    struct stack_interne * cs = ctx_stack->head;
+    while(cs->next != NULL) {
+        cs = cs->next;
+    }
+    struct ctx * ctx = cs->current;
+    ctx->entries[ctx->nb_entry] = new_entry;
+    ctx->nb_entry++;
+}
 
 struct ctx_stack * create_ctx_stack(void) {
     struct ctx_stack * ctx_stack = malloc( sizeof(struct ctx_stack) );
@@ -104,6 +117,9 @@ void print_entry(struct entry * e) {
             break;
         case E_STR:
             printf("str   ");
+            break;
+        case E_TAB:
+            printf("tab   ");
             break;
         default:
             printf("/!\\ unknown type/!\\");
@@ -166,3 +182,4 @@ struct entry * lookup(struct ctx_stack * ctx_stack, char * name) {
     return NULL;
 
 }
+

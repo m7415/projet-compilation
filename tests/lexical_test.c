@@ -107,7 +107,7 @@ int lexical_test() {
     ACCES_ARG,
     ACCES_ARG,
     ACCES_LISTE_TABLEAU,
-    ACCES_ELEM_TABLEAU
+    DOLLAR
   };
 
   // Pour chaque chaîne de test

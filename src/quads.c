@@ -16,6 +16,10 @@ void print_quad(struct quad q, FILE * file_) {
         fprintf(file,"GOTO ?");
         // printf("GOTO <addr>?");
     }
+    else if(q.kind == Q_GOTO_LABEL) {
+        fprintf(file, "GOTO ");
+        print_quadop(q.res, file);
+    }
     else if(q.kind == Q_IFDIFF) {
         fprintf(file, "IF ");
         print_quadop(q.op1, file);
@@ -146,6 +150,24 @@ void print_quad(struct quad q, FILE * file_) {
         fprintf(file, " TO ");
         print_quadop(q.op1, file);
     }
+    else if(q.kind == Q_SET_TAB) {
+        fprintf(file, "SET ");
+        print_quadop(q.res, file);
+        fprintf(file, "[");
+        print_quadop(q.op1, file);
+        fprintf(file, "] TO ");
+        print_quadop(q.op2, file);
+        fprintf(file, " (SET_TAB)");
+    }
+    else if(q.kind == Q_GET_TAB) {
+        fprintf(file, "SET ");
+        print_quadop(q.res, file);
+        fprintf(file, " TO ");
+        print_quadop(q.op1, file);
+        fprintf(file, "[");
+        print_quadop(q.op2, file);
+        fprintf(file, "] (GET_TAB)");
+    }
     else if(q.kind == Q_BIDON) {
         fprintf(file, "XXXX ");
         print_quadop(q.op1, file);
@@ -165,6 +187,13 @@ void print_quad(struct quad q, FILE * file_) {
     else if(q.kind == Q_DECLARE) {
         fprintf(file, "DECLARE ");
         print_quadop(q.op1, file);
+    }
+    else if(q.kind == Q_DECLARE_TAB) {
+        fprintf(file, "DECLARE_TAB ");
+        print_quadop(q.op1, file);
+        fprintf(file, "[");
+        print_quadop(q.op2, file);
+        fprintf(file, "]");
     }
     else if(q.kind == Q_CONCAT) {
         fprintf(file, "SET ");
@@ -206,6 +235,9 @@ void print_quadop(struct quadop op, FILE * file_) {
         fprintf(file, "%s", op.ident);
         fprintf(file, "]");
     }
+    else if(op.kind == QO_TAB_ELEM) {
+        fprintf(file, "TAB[%s][%i] (/!\\ devrait pas apparaitre /!\\) ", op.tab.ident, op.tab.idx);
+    }
     else if(op.kind == QO_CST_STRING) {
         fprintf(file, "%s",op.cst_str);
     }
@@ -220,7 +252,12 @@ void print_quadop(struct quadop op, FILE * file_) {
         fprintf(file, "<addr>?");
     }
     else if(op.kind == QO_IDENT) {
-        fprintf(file, "<ident>%s", op.ident);
+        fprintf(file, "IDENT[");
+        fprintf(file, "%s", op.ident);
+        fprintf(file, "]");
+    }
+    else if(op.kind == QO_TAB_ELEM) {
+        fprintf(file, "TAB[%s][%i]", op.tab.ident,op.tab.idx);
     }
     else if(op.kind == QO_CST_STRING) {
         fprintf(file, "<cst_str>%s",op.cst_str);
@@ -249,6 +286,14 @@ struct quadop quadop_ident(char * id) {
     struct quadop qo;
     qo.kind = QO_IDENT;
     strncpy(qo.ident,id,MAX_IDENT_SIZE);
+    return qo;
+}
+
+struct quadop quadop_tab_elem(char * id, int idx) {
+    struct quadop qo;
+    qo.kind = QO_TAB_ELEM;
+    strncpy(qo.tab.ident, id, MAX_IDENT_SIZE);
+    qo.tab.idx = idx;
     return qo;
 }
 
@@ -406,12 +451,37 @@ struct quad quad_goto_unknown() {
     return q;
 }
 
+struct quad quad_goto_label(struct quadop label) {
+    struct quad q;
+    q.kind = Q_GOTO_LABEL;
+    q.res = label;
+    return q;
+}
+
 
 struct quad quad_set(struct quadop ident, struct quadop val) {
     struct quad q;
     q.kind = Q_SET;
     q.op1 = val;
     q.res = ident;
+    return q;
+}
+
+struct quad quad_set_tab(struct quadop tab, struct quadop idx, struct quadop val) {
+    struct quad q;
+    q.kind = Q_SET_TAB;
+    q.res = tab;
+    q.op1 = idx;
+    q.op2 = val;
+    return q;
+}
+
+struct quad quad_get_tab(struct quadop ident, struct quadop tab, struct quadop idx) {
+    struct quad q;
+    q.kind = Q_GET_TAB;
+    q.res = ident;
+    q.op1 = tab;
+    q.op2 = idx;
     return q;
 }
 
@@ -447,6 +517,13 @@ struct quad quad_declare(struct quadop ident) {
     struct quad q;
     q.kind = Q_DECLARE;
     q.op1 = ident;
+    return q;
+}
+struct quad quad_declare_tab(struct quadop ident, struct quadop taille) {
+    struct quad q;
+    q.kind = Q_DECLARE_TAB;
+    q.op1 = ident;
+    q.op2 = taille;
     return q;
 }
 
