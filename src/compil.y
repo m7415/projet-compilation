@@ -24,6 +24,7 @@
 #define SYMB_OPERATEUR_2_GAUCHE ".op2_gauche"
 #define SYMB_OPERATEUR_2_DROITE ".op2_droite"
 
+
 extern int yylex();
 extern void yyerror(const char * msg);
 void gencode(struct quad q); // ajouter le quad à notre code
@@ -177,7 +178,11 @@ noreturn void fatal(const char *msg, ...)
         struct list * next;
     } else_part_type;
 
-    
+    struct {
+        // struct quadop res[32];
+        struct qo_list * qo_list;
+    } liste_expr;
+
     struct {
         struct list * next;
         int isempty; // uniquement pour les st, vaut 1 is st est %empty
@@ -202,7 +207,8 @@ noreturn void fatal(const char *msg, ...)
 %token ACCES_LISTE_ARG ACCES_LISTE_TABLEAU
 %token<intval> LAST_FUNC_STATUS
 
-%type<expr> concatenation operande liste_operandes
+%type<expr> concatenation operande
+%type<liste_expr> liste_operandes
 %type<expr> somme_entier produit_entier operande_entier
 %type<boolexpr> test_bloc test_expr test_expr2 test_expr3 test_instruction
 %type<instr_type> liste_instructions instruction
@@ -340,8 +346,15 @@ les goto qui pointent vers le quad juste après eux
     $$.next = list_concat($$.next, $3.true);
 }
 | KW_ECHO liste_operandes {
-    struct quad q = quad_echo($2.res);
-    gencode(q);
+    // for(int i = 0; i < $2.nb_qo ; i++) {
+    //     gencode( quad_echo($2.res[i]) );
+    // }
+    struct qo_list * next = $2.qo_list;
+    while(next != NULL) {
+        gencode (quad_echo(next->val) );
+        next = next->next;
+    }
+    qo_list_free($2.qo_list);
     $$.next = NULL;
 }
 | KW_EXIT {
@@ -606,11 +619,12 @@ test_instruction
 ;
 
 liste_operandes
-: liste_operandes operande {}
+: liste_operandes operande {
+    $$.qo_list = $1.qo_list;
+    qo_list_append($$.qo_list, $2.res);
+}
 | operande { 
-    // print_quadop($1.res);
-    // printf(" ici\n");
-    $$.res = $1.res;
+    $$.qo_list = qo_list_creer($1.res);
 }
 | ACCES_LISTE_TABLEAU {}
 ;

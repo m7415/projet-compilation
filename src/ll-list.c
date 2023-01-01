@@ -61,3 +61,39 @@ void list_free(struct list * l) {
     free(l);
 }
 
+struct qo_list * qo_list_creer(struct quadop qo) {
+    struct qo_list * newl = malloc(sizeof(struct qo_list));
+    newl->next = NULL;
+    newl->val = qo;
+    return newl;
+}
+void qo_list_free(struct qo_list * l) {
+    if(l == NULL) return;
+    qo_list_free(l->next);
+    free(l);
+}
+void qo_list_append(struct qo_list * l, struct quadop qo) {
+    if(l == NULL) {
+        fprintf(stderr, "erreur append sur qo_list vide\n");
+        exit(1);
+    }
+    struct qo_list * newl = malloc(sizeof(struct qo_list));
+    newl->next = NULL;
+    newl->val = qo;
+    struct qo_list * next = l;
+    while(next->next != NULL) {
+        next = next->next;
+    }
+    next->next = newl;
+}
+void qo_list_print(struct qo_list * l) {
+    if(l == NULL) {
+        printf("(empy list)");
+        return;
+    }
+    struct qo_list * next = l;
+    while(next != NULL) {
+        print_quadop(next->val, NULL);
+        next = next->next;
+    }
+}
