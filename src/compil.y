@@ -29,7 +29,9 @@ extern int yylex();
 extern void yyerror(const char * msg);
 void gencode(struct quad q); // ajouter le quad à notre code
 void complete(struct list * l, size_t addr); // compléter les goto inconnus
-struct entry * new_temp(); // générer une nouvelle entry, renvoyer son pointeur
+struct entry * new_temp(char * name_); // générer une nouvelle entry, renvoyer son pointeur
+// si name == NULL, le nom sera de la forme ".tmp_xx"
+// si name != NULL, le nom sera de la forme ".tmp_xx_<name>"
 int is_numeric(char * s); // renvois 1 si s est uniquement composé de chiffres de 0 à 9
 
 void fatal(const char * msg, ...); // affiche un msg d'erreur formaté (comme printf)
@@ -101,11 +103,15 @@ void complete_single(int quad_num, size_t addr) {
     }
 }
 
-struct entry * new_temp() {
+struct entry * new_temp(char * name_) {
     // printf("call new_temp mais c'est pas encore fait, ça c'est padbol\n");
     char name[MAX_IDENT_SIZE]; // 32 chars, incluant le \0
     // int rand_nb = rand(); // nombre au hasard
-    snprintf(name, MAX_IDENT_SIZE, ".tmp_%d", nb_temp++);
+    if(name_ == NULL) {
+        snprintf(name, MAX_IDENT_SIZE, ".tmp_%d", nb_temp++);
+    } else {
+        snprintf(name, MAX_IDENT_SIZE, ".tmp_%d_%s", nb_temp++, name_);
+    }
     // grace au "." au début (accepté par MIPS mais pas par SOS), on est sur que le programme n'utilisait pas ça
     // et la numérotation assure l'unicité 
     // (sauf si on dépasse 10^(MAX_IDENT_SIZE-6) variables temporaires...)
@@ -181,6 +187,7 @@ noreturn void fatal(const char *msg, ...)
     struct {
         // struct quadop res[32];
         struct qo_list * qo_list;
+        int nb_elem;
     } liste_expr;
 
     struct {
@@ -394,30 +401,114 @@ les goto qui pointent vers le quad juste après eux
     $$.next = NULL;
     $$.next = list_concat($$.next, $3.true);
 }
-| KW_ECHO liste_operandes {
-    // for(int i = 0; i < $2.nb_qo ; i++) {
-    //     gencode( quad_echo($2.res[i]) );
-    // }
+| KW_FOR IDENTIFIER {
+    struct entry * e = lookup(ctx_stack, $2);
+    if(e != NULL && e->type == E_TAB) {
+        fatal("Utilisation d'une variable tableau dans une boucle for"
+              " : '%s'\n",$2);
+    }
+    if(e == NULL) {
+        e = create_entry($2, E_STR);
+        newname(ctx_stack, e);
+        newname(liste_symbole, e);
+        gencode(quad_declare(quadop_ident($2)));
+    }
+    } KW_IN liste_operandes KW_DO {
+    int nb_op = $5.nb_elem; // renommer pour la lisibilité
 
+    // création d'un tableau qui contiendra les valeurs successives
+    struct entry * e_tab = new_temp("for_tab");
+    e_tab->taille = nb_op;
+    e_tab->type = E_TAB;
+    newname(ctx_stack, e_tab);
+    newname(liste_symbole,e_tab);
+    struct quadop ident_tab = quadop_ident(e_tab->name);
+    char num[32];
+    snprintf(num,32,"%i",nb_op);
+    gencode(quad_declare_tab(ident_tab, quadop_cst_string(num)));
     struct entry * tmp = NULL;
     struct quadop id_tmp;
-
-    struct qo_list * next = $2.qo_list;
+    struct qo_list * next = $5.qo_list;
+    int idx = 0;
     while(next != NULL) {
-        if(next->val.kind == QO_TAB_ELEM) {
-            if(tmp == NULL) {
-                tmp = new_temp();
+        snprintf(num, 32, "%i", idx);
+        idx++;
+        if(next->val.kind == QO_TAB_ELEM) { // si c'est un accès tableau,
+            if(tmp == NULL) { // pour éviter de systématiquement créer un tmp
+                tmp = new_temp(NULL);
                 newname(ctx_stack,tmp);
                 newname(liste_symbole, tmp);
                 id_tmp = quadop_ident(tmp->name);
                 gencode(quad_declare(id_tmp));
             }
+            // on charge la valeur du tableau dans un tmp
+            struct quadop id_tab = quadop_ident(next->val.tab.ident);
+            struct quadop idx_tab = quadop_cst(next->val.tab.idx);
+            gencode(quad_get_tab(id_tmp, id_tab, idx_tab));
+            // et on enregistre ce tmp dans notre tableau temporaire
+            gencode(quad_set_tab(ident_tab, quadop_cst_string(num), id_tmp));
+        }
+        else { // si c'est un quadop normal
+        // remarque : s'il n'y a aucun QO_TAB_ELEM, alors aucune variable tmp
+        // n'est générée
+            gencode(quad_set_tab(ident_tab, quadop_cst_string(num), next->val));
+        }
+        next = next->next;
+    }
+    $<expr>$.res = ident_tab;
+    } M {
+    struct quadop ident_tab = $<expr>7.res;
+    struct quadop ident = quadop_ident($2);
+    char num[32];
+    int nb_op = $5.nb_elem;
+    struct entry * e_compteur = new_temp("for_idx");
+    newname(ctx_stack, e_compteur);
+    newname(liste_symbole, e_compteur);
+    struct quadop ident_compteur = quadop_ident(e_compteur->name);
+    gencode(quad_declare(ident_compteur));
+    gencode(quad_set(ident_compteur, quadop_cst_string("0")));
+    
+    snprintf(num, 32, "%i", nb_op);
+    struct quad iter = quad_iflt(ident_compteur, quadop_cst_string(num));
+    iter.res.addr = nextquad+2; // à vérifier
+    iter.res.kind = QO_ADDR;
+    gencode(iter);
+    $<instr_type>$.next = list_creer(nextquad);
+    gencode(quad_goto_unknown());
+    gencode(quad_get_tab(ident, ident_tab, ident_compteur));
+    gencode(quad_add(ident_compteur, ident_compteur, quadop_cst_string("1")));
+
+    } liste_instructions G KW_DONE {
+    complete_single($11, $8+2); // +2 pour sauter l'initialisation du compteur de boucle
+    // struct entry * e_ident = lookup(ctx_stack,$2);
+    // struct quadop ident = quadop_ident($2);
+    $$.next = list_concat($<instr_type>9.next, $10.next);
+    qo_list_free($5.qo_list);
+}
+| KW_ECHO liste_operandes {
+    struct entry * tmp = NULL;
+    struct quadop id_tmp;
+    struct qo_list * next = $2.qo_list;
+    while(next != NULL) {
+        if(next->val.kind == QO_TAB_ELEM) { // si c'est un accès tableau,
+            if(tmp == NULL) { // pour éviter de systématiquement créer un tmp
+                tmp = new_temp(NULL);
+                newname(ctx_stack,tmp);
+                newname(liste_symbole, tmp);
+                id_tmp = quadop_ident(tmp->name);
+                gencode(quad_declare(id_tmp));
+            }
+            // on charge la valeur du tableau dans un tmp
+            // puis on affiche ce tmp
+            // c'est plus simple que de toute faire d'un coup
             struct quadop id_tab = quadop_ident(next->val.tab.ident);
             struct quadop idx_tab = quadop_cst(next->val.tab.idx);
             gencode(quad_get_tab(id_tmp, id_tab, idx_tab));
             gencode (quad_echo(id_tmp) );
         }
-        else {
+        else { // si c'est un quadop normal, on l'echo simplement
+        // remarque : s'il n'y a aucun QO_TAB_ELEM, alors aucune variable tmp
+        // n'est générée
             gencode(quad_echo(next->val));
         }
         next = next->next;
@@ -495,7 +586,7 @@ else_part
 
 concatenation
 : concatenation operande {
-    struct entry * nv_temp = new_temp();
+    struct entry * nv_temp = new_temp(NULL);
     struct quadop ident_tmp = quadop_ident(nv_temp->name);
     struct quad q_concat = quad_concat(ident_tmp, $1.res, $2.res);
     gencode(quad_declare(ident_tmp));
@@ -690,9 +781,11 @@ liste_operandes
 : liste_operandes operande {
     $$.qo_list = $1.qo_list;
     qo_list_append($$.qo_list, $2.res);
+    $$.nb_elem = $1.nb_elem+1;
 }
 | operande { 
     $$.qo_list = qo_list_creer($1.res);
+    $$.nb_elem = 1;
 }
 | ACCES_LISTE_TABLEAU {
     $$.qo_list = NULL;
@@ -709,6 +802,7 @@ liste_operandes
     for(int i=1;i < tab->taille; i++) {
         qo_list_append($$.qo_list, quadop_tab_elem($1, i));
     }
+    $$.nb_elem = tab->taille;
     // DEBUG qo_list_print($$.qo_list);
 }
 ;
@@ -732,7 +826,7 @@ operande
         fatal("Cette variable n'est pas un tableau : '%s'\n", $3);
     }
     // struct quadop tab_elem = quadop_tab_elem()
-    struct entry * tmp = new_temp();
+    struct entry * tmp = new_temp(NULL);
     newname(ctx_stack,tmp);
     newname(liste_symbole, tmp);
     struct quadop id_tmp = quadop_ident(tmp->name);
@@ -791,7 +885,7 @@ operateur2
 
 somme_entier
 : somme_entier PLUS_OU_MOINS produit_entier {
-    struct entry * res = new_temp();
+    struct entry * res = new_temp(NULL);
     newname(ctx_stack, res);
     newname(liste_symbole, res);
     struct quadop ident_res = quadop_ident(res->name);
@@ -814,7 +908,7 @@ somme_entier
 
 produit_entier
 : produit_entier FOIS_DIV_MOD operande_entier {
-    struct entry * res = new_temp();
+    struct entry * res = new_temp(NULL);
     newname(ctx_stack, res);
     newname(liste_symbole, res);
     struct quadop ident_res = quadop_ident(res->name);
@@ -840,6 +934,8 @@ produit_entier
 
 operande_entier
 : opt_plus_ou_moins ACCES_VARIABLE {
+    // la vérification de la validité de la variable se fait dans le mips
+    // avec notre petite librairie (verif_entier.s, convert_entier.s, erreur.s)
     DEBUG printf("(op_entier) accès à la variable : %s\n", $2);
     struct entry * e = lookup(ctx_stack, $2);
     if( e == NULL ) {
@@ -850,7 +946,7 @@ operande_entier
         $$.res = ident;
     }
     else { // un '-'
-        struct entry * inv = new_temp();
+        struct entry * inv = new_temp(NULL);
         newname(ctx_stack, inv);
         newname(liste_symbole, inv);
         struct quadop ident_inv = quadop_ident(inv->name);
@@ -870,7 +966,7 @@ operande_entier
         $$.res = val;
     }
     else {
-        struct entry * inv = new_temp();
+        struct entry * inv = new_temp(NULL);
         newname(ctx_stack, inv);
         newname(liste_symbole, inv);
         struct quadop ident_inv = quadop_ident(inv->name);
