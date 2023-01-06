@@ -121,10 +121,22 @@ void print_entry(struct entry * e) {
         case E_TAB:
             printf("tab   ");
             break;
+        case E_LOC:
+            printf("str   ");
+            break;
         default:
             printf("/!\\ unknown type/!\\");
     }
     printf("'%s'", e->name);
+    if(e->type == E_TAB) {
+        printf(" [%i]", e->taille);
+    }
+    else if(e->type == E_LOC) {
+        printf("  (local : %i)", e->offset_sp);
+    }
+    else if(e->type == E_FUNC) {
+        printf("  (%i params, %i locals)", e->nb_param, e->nb_decl_loc);
+    }
 }
 
 void print_ctx(struct ctx * c) {

@@ -12,15 +12,28 @@
 enum entry_type {
     E_INT,  // inutilisé
     E_BOOL, // inutilisé
-    E_FUNC,
-    E_STR,
-    E_TAB
+    E_FUNC, // fonctions (global)
+    E_STR, // variables (global)
+    E_TAB, // tableaux (global)
+    E_LOC  // variables locales (pour les fonctions)
 };
 
 struct entry {
     enum entry_type type;
     char name[MAX_IDENT_SIZE];
-    int taille; // pour les E_TAB
+    union { // données en plus, si besoin
+        // TODO : virer les struct inutiles (avec un seul element)
+        struct { // E_TAB
+            int taille;
+        };
+        struct { // E_LOC
+            int offset_sp; // décalage par rapport à $sp (psk sur le stack)
+        };
+        struct { // E_FUNC
+            int nb_param; // nombre de paramètres
+            int nb_decl_loc; // nombre de variables locales
+        };
+    };
 };
 
 struct ctx_stack; 

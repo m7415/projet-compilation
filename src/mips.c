@@ -1,209 +1,239 @@
-#include "mips.h"
+#include "mips_sim.h"
 
-void shift_write(char *chaine, int * position, FILE *fichier) {
+
+int shift_write(struct file_asm * f, int position, char *chaine, ...) {
+    
+    FILE * fichier = f->sortie;
+    int pointeur_init = ftell(fichier);
+
     // R2cupération de la taille du fichier
     fseek(fichier, 0, SEEK_END);
     int taille = ftell(fichier);
+    // printf("taille : %i\n", taille);
 
     // Déplacement à la position spécifiée dans le fichier
-    fseek(fichier, *position, SEEK_SET);
+    fseek(fichier, position, SEEK_SET);
+    // printf("position : %i %li\n", position, ftell(fichier));
 
     // Lecture de la suite du fichier dans un buffer
-    char buffer[taille];
-    size_t nb_octets_lus = fread(buffer, sizeof(char), taille, fichier);
+    char * buffer = calloc(taille+1,1);
+    size_t nb_octets_lus = fread(buffer, 1, taille, fichier);
+    // printf("octets lus pour reste fichier : %lu\n", nb_octets_lus);
+    // printf("buffer[0] int(char) : %i('%c')\n", buffer[0], buffer[0]);
+    // printf("reste du fichier :\n'%s'\n",buffer);
 
     // Écriture de la chaîne de caractères à la position spécifiée dans le fichier
-    fseek(fichier, *position, SEEK_SET);
-    fwrite(chaine, sizeof(char), strlen(chaine), fichier);
-    *position += strlen(chaine);
+    int r = 0;
+    fseek(fichier, position, SEEK_SET);
+    va_list ap;
+    va_start(ap,chaine);
+    r += vfprintf(fichier, chaine, ap);
+    va_end(ap);
 
     // Réécriture de la suite du fichier à la suite de la chaîne de caractères
     fwrite(buffer, sizeof(char), nb_octets_lus, fichier);
 
     // Déplacement à la fin du fichier
-    fseek(fichier, 0, SEEK_END);
+    fseek(fichier, pointeur_init+r, SEEK_SET);
+    free(buffer);
+
+    if(f->pos_data > position) {
+        f->pos_data += r;
+    }
+    if(f->pos_main > position) {
+        f->pos_main += r;
+    }
+    return r;
 }
+
 
 
 char * new_string(int *numstr) {
     char * str = malloc(MAX_MIPS_ID * sizeof(char));
-    sprintf(str, "_s%d", *numstr);
+    sprintf(str, ".s%d", *numstr);
     *numstr += 1;
     return str;
 }
 
-char* handle_quadop(struct quadop qo, FILE * sortie,int *pos_data, int *numstr,int *numlab, int* table_label) {
-    char * mips = malloc(MAX_OP_SIZE * sizeof(char));
-    char *chaine = malloc(MAX_OP_SIZE * sizeof(char));
+// char* handle_quadop(struct quadop qo, FILE * sortie,int *pos_data, int *numstr,int *numlab, int* table_label) {
+char* handle_quadop(struct file_asm * f, struct quadop qo) {
+    char * mips = malloc(MAX_OP_SIZE);
+    char * chaine = malloc(MAX_OP_SIZE);
     char *str;
     switch (qo.kind) {
         case QO_CST:
-            sprintf(mips, "%d", qo.cst);
+            snprintf(mips, MAX_OP_SIZE, "%d", qo.cst);
             break;
         case QO_CST_STRING:
-            str = new_string(numstr);
+            str = new_string(&f->numstr);
             switch (qo.cst_str[0])
             {
             case '\"':
-                sprintf(chaine,"    %s: .asciiz %s\n",str,qo.cst_str);
+                snprintf(chaine,MAX_OP_SIZE,"   %s: .asciiz %s\n",str,qo.cst_str);
                 break;
             case '\'':
                 qo.cst_str[0] = '\"';
                 qo.cst_str[strlen(qo.cst_str)-1] = '\"';
-                sprintf(chaine,"    %s: .asciiz %s\n",str,qo.cst_str);
+                snprintf(chaine,MAX_OP_SIZE,"   %s: .asciiz %s\n",str,qo.cst_str);
                 break;
             default:
-                sprintf(chaine,"    %s: .asciiz \"%s\"\n",str,qo.cst_str);
+                snprintf(chaine,MAX_OP_SIZE,"   %s: .asciiz \"%s\"\n",str,qo.cst_str);
                 break;
             }
-            shift_write(chaine,pos_data,sortie);
-            sprintf(mips, "%s", str);
+            f->pos_data += shift_write(f, f->pos_data, chaine);
+            snprintf(mips, MAX_OP_SIZE, "%s", str);
             free(str);
             break;
         case QO_IDENT:
-            sprintf(mips, "%s", qo.ident);
+            snprintf(mips, MAX_OP_SIZE, "%s", qo.ident);
             break;
         case QO_ADDR:
-            if (table_label[qo.addr] == -1)
+            if (f->table_label[qo.addr] == -1)
             {
-                table_label[qo.addr] = *numlab;
-                *numlab += 1;                
+                f->table_label[qo.addr] = f->numlab;
+                f->numlab += 1;                
             }
-            sprintf(mips,"_l%d",table_label[qo.addr]);
+            snprintf(mips, MAX_OP_SIZE, "_l%d",f->table_label[qo.addr]);
             break;
         default:
-            sprintf(mips, "UNKNOWN");
+            snprintf(mips, MAX_OP_SIZE, "UNKNOWN");
             break;
     }
     free(chaine);
     return mips;
 }
 
-int handle_quad(int i, struct quad q, FILE * sortie,int *pos_data, int *numstr,int *numlab, int* table_label, int * table_addr) {
+// int handle_quad(int i, struct quad q, FILE * sortie,int *pos_data, int *numstr,int *numlab, int* table_label, int * table_addr) {
+int handle_quad(struct file_asm * f, struct quad q, int i) {
     int ecrit = 0;
     char * temp1;
     char * temp2;
     char * temp3;
     switch (q.kind) {
         case Q_ECHO:
-            switch (q.op1.kind) {
-                case QO_CST:
-                    temp1 = handle_quadop(q.op1,sortie, pos_data, numstr, numlab, table_label);
-                    ecrit = fprintf(sortie, "   la $a0, %s\n   li $v0, 1\n   syscall\n", temp1);
-                    free(temp1);
-                    break;
-                case QO_CST_STRING:
-                    temp1 = handle_quadop(q.op1,sortie, pos_data, numstr, numlab, table_label);
-                    ecrit = fprintf(sortie, "   la $a0, %s\n   li $v0, 4\n   syscall\n", temp1);
-                    free(temp1);
-                    break;
-                case QO_IDENT:
-                    /* code */
-                    break;
-                default:
-                    fprintf(stderr,"ERREUR !\n");
-                    break;
-            }
+            // switch (q.op1.kind) {
+            //     case QO_CST:
+            //         temp1 = handle_quadop(f, q.op1);
+            //         ecrit = fprintf(f->sortie, "   la $a0, %s\n   li $v0, 1\n   syscall\n", temp1);
+            //         free(temp1);
+            //         break;
+            //     case QO_CST_STRING:
+            //         temp1 = handle_quadop(f, q.op1);
+            //         ecrit = fprintf(f->sortie, "   la $a0, %s\n   li $v0, 4\n   syscall\n", temp1);
+            //         free(temp1);
+            //         break;
+            //     case QO_IDENT:
+            //         /* code */
+            //         break;
+            //     default:
+            //         fprintf(stderr,"ERREUR !\n");
+            //         break;
+            // }
+            temp1 = handle_quadop(f, q.op1);
+            ecrit = fprintf(f->sortie, "   la $a0, %s\n   li $v0, 4\n   syscall #print_str\n", temp1);
+            free(temp1);
             break;
-        case Q_IFEQ:
-            temp1 = handle_quadop(q.op1,sortie, pos_data, numstr, numlab, table_label);
-            temp2 = handle_quadop(q.op2,sortie, pos_data, numstr, numlab, table_label);
-            temp3 = handle_quadop(q.res,sortie, pos_data, numstr, numlab, table_label);
-            ecrit = fprintf(sortie, "   la $t0,%s\n   la $t1,%s\n   beq $t0, $t1, %s\n", temp1, temp2, temp3);
+            break;
+        case Q_IFEQ_STR:
+            temp1 = handle_quadop(f, q.op1);
+            temp2 = handle_quadop(f, q.op2);
+            temp3 = handle_quadop(f, q.res);
+            ecrit  = fprintf(f->sortie, "   la $a0, %s\n", temp1);
+            ecrit += fprintf(f->sortie, "   la $a1, %s\n", temp2);
+            ecrit += fprintf(f->sortie, "   jal compare\n");
+            ecrit += fprintf(f->sortie, "   beq $v0, 0, %s #TODO vérifier lbl\n", temp3);
             free(temp1);
             free(temp2);
             free(temp3);
             break;
-        case Q_IFDIFF:
-            temp1 = handle_quadop(q.op1,sortie, pos_data, numstr, numlab, table_label);
-            temp2 = handle_quadop(q.op2,sortie, pos_data, numstr, numlab, table_label);
-            temp3 = handle_quadop(q.res,sortie, pos_data, numstr, numlab, table_label);
-            ecrit = fprintf(sortie, "   la $t0,%s\n   la $t1,%s\n   bne $t0, $t1, %s\n", temp1, temp2, temp3);
+        case Q_IFDIFF_STR:
+            temp1 = handle_quadop(f, q.op1);
+            temp2 = handle_quadop(f, q.op2);
+            temp3 = handle_quadop(f, q.res);
+            ecrit  = fprintf(f->sortie, "   la $a0, %s\n", temp1);
+            ecrit += fprintf(f->sortie, "   la $a1, %s\n", temp2);
+            ecrit += fprintf(f->sortie, "   jal compare\n");
+            ecrit += fprintf(f->sortie, "   beq $v0, 1, %s #TODO vérifier lbl\n", temp3);
             free(temp1);
             free(temp2);
             free(temp3);
             break;
         case Q_GOTO:
-            temp1 = handle_quadop(q.res,sortie, pos_data, numstr, numlab, table_label);
-            ecrit = fprintf(sortie, "   b %s\n", temp1);
+            temp1 = handle_quadop(f,q.res);
+            ecrit = fprintf(f->sortie, "   b %s\n", temp1);
             free(temp1);
             break;
         case Q_GOTO_UNKNOWN:
-            ecrit = fprintf(sortie, "   b UNKNOWN\n");
+            ecrit = fprintf(f->sortie, "   b UNKNOWN\n");
             break;
         case Q_BIDON:
-            ecrit = fprintf(sortie, "   BIDON\n");
+            ecrit = fprintf(f->sortie, "   BIDON\n");
             break;
         case Q_BIDON2:
-            ecrit = fprintf(sortie, "   BIDON2\n");
+            ecrit = fprintf(f->sortie, "   BIDON2\n");
             break;
         case Q_SET:
-            temp1 = handle_quadop(q.op1,sortie, pos_data, numstr, numlab, table_label);
-            temp2 = handle_quadop(q.res,sortie, pos_data, numstr, numlab, table_label);
-            ecrit = fprintf(sortie, "   MOVE %s, %s\n", temp1, temp2);
+            temp1 = handle_quadop(f,q.op1);
+            temp3 = handle_quadop(f,q.res);
+            ecrit = fprintf(f->sortie, "   la $a0, %s\n", temp3);
+            ecrit = fprintf(f->sortie, "   la $a1, %s\n", temp1);
+            ecrit = fprintf(f->sortie, "   la $a2, .empty_string\n");
+            ecrit = fprintf(f->sortie, "   jal concat\n");
+            free(temp1);
+            free(temp3);
             break;
         case Q_EXIT:
-            ecrit = fprintf(sortie,"jr $ra\n");;
+            ecrit = fprintf(f->sortie,"   li $v0, 10\n"
+                                      "   syscall #EXIT\n");
+            break;
+        case Q_DECLARE:
+            f->pos_data += shift_write(f, f->pos_data, "   %s: .space %i\n",
+                                       q.op1.ident,DEFAULT_VAR_SIZE);
+
+            f->pos_main += shift_write(f, f->pos_main, "#defaultval for %s\n",
+                                       q.op1.ident);
             break;
         default:
-            ecrit = fprintf(sortie, "   UNKNOWN\n");
+            ecrit = fprintf(f->sortie, "   UNKNOWN\n");
             break;
     }
-    table_addr[i] = ftell(sortie) - *pos_data - ecrit;
+    f->table_addr[i] = ftell(f->sortie) - f->pos_data - ecrit;
     return 0;
 }
 
+
 int trad_mips(FILE * sortie,struct quad* quad_table, int nextquad /*+ table des symboles*/){
-    int pos_data = 0;
 
-    int numstr = 0;
-    int numlab = 0;
+    struct file_asm f;
+    f.sortie = sortie;
+    f.numstr = 0;
+    f.numlab = 0;
 
-    int table_label[nextquad];
+    fprintf(sortie, ".data\n");
+    fprintf(sortie, "   .empty_string: .asciiz \"\"\n");
+    f.pos_data = ftell(sortie);
+
+    fprintf(sortie, "\n.text\n");
+    fprintf(sortie, ".globl main\n\nmain:\n");
+    f.pos_main = ftell(sortie);
+
+
+    f.table_label = malloc(nextquad*sizeof(int));
     for (int i = 0; i < nextquad; i++)
     {
-        table_label[i] = -1;
+        f.table_label[i] = -1;
     }
 
-    int table_addr[nextquad];
+    f.table_addr = malloc(nextquad*sizeof(int));
     for (int i = 0; i < nextquad; i++)
     {
-        table_addr[i] = 0;
+        f.table_addr[i] = 0;
     }
 
-    // Data zone
-    pos_data += fprintf(sortie,".data\n");
-
-    //variables globales ?
-    fprintf(sortie,".text\n");
-
-    // Code zone
-    fprintf(sortie,".globl main\nmain:\n");
-
-    for (int i = 0; i < nextquad; i++)
-    {
-        handle_quad(i, quad_table[i],sortie, &pos_data, &numstr, &numlab, table_label, table_addr);
+    for(int i = 0; i < nextquad; i++) {
+        struct quad q = quad_table[i];
+        handle_quad(&f, q, i);
     }
-
-    char *chaine = malloc(MAX_OP_SIZE * sizeof(char));
-    int position = pos_data;
-    for (int i = 0; i < nextquad; i++)
-    {
-        if (table_label[i] != -1)
-        {
-            position += table_addr[i];
-            sprintf(chaine,"_l%d:\n",table_label[i]);
-            shift_write(chaine, &position, sortie);
-            position = position - table_addr[i];
-        }
-    }
-    free(chaine);
-    
-    
-    //pos_code += fprintf(sortie,"label1:\n");
-    //code
-    //...
-    //fin du programme
 
     return 0;
 }

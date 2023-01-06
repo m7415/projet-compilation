@@ -210,7 +210,7 @@ void print_quad(struct quad q, FILE * file_) {
     fprintf(file, "\n");
 }
 
-// #define PRINTTYPES
+#define PRINTTYPES
 
 void print_quadop(struct quadop op, FILE * file_) {
     FILE * file;
