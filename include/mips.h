@@ -1,5 +1,5 @@
-#ifndef MIPS_SIM_H
-#define MIPS_SIM_H
+#ifndef MIPS_H
+#define MIPS_H
 
 #include <sys/types.h>
 #include <stdio.h>
