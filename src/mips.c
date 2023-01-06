@@ -1,4 +1,4 @@
-#include "mips_sim.h"
+#include "mips.h"
 
 
 int shift_write(struct file_asm * f, int position, char *chaine, ...) {
@@ -130,18 +130,29 @@ int handle_quad(struct file_asm * f, struct quad q, int i) {
             //         break;
             // }
             temp1 = handle_quadop(f, q.op1);
-            ecrit = fprintf(f->sortie, "   la $a0, %s\n   li $v0, 4\n   syscall #print_str\n", temp1);
+            ecrit = fprintf(f->sortie,
+                            "   la $a0, %s\n"
+                            "   li $v0, 4\n"
+                            "   syscall #print_str\n",
+                            temp1);
+            if(q.data.is_last == 0) {
+                ecrit += fprintf(f->sortie, 
+                                 "   la $a0, .single_space\n"
+                                 "   li $v0, 4\n"
+                                 "   syscall #espace après echo\n" );
+            }
             free(temp1);
-            break;
             break;
         case Q_IFEQ_STR:
             temp1 = handle_quadop(f, q.op1);
             temp2 = handle_quadop(f, q.op2);
             temp3 = handle_quadop(f, q.res);
-            ecrit  = fprintf(f->sortie, "   la $a0, %s\n", temp1);
-            ecrit += fprintf(f->sortie, "   la $a1, %s\n", temp2);
-            ecrit += fprintf(f->sortie, "   jal compare\n");
-            ecrit += fprintf(f->sortie, "   beq $v0, 0, %s #TODO vérifier lbl\n", temp3);
+            ecrit  = fprintf(f->sortie, 
+                             "   la $a0, %s\n"
+                             "   la $a1, %s\n"
+                             "   jal compare\n"
+                             "   beq $v0, 0, %s\n", 
+                             temp1, temp2, temp3);
             free(temp1);
             free(temp2);
             free(temp3);
@@ -150,10 +161,12 @@ int handle_quad(struct file_asm * f, struct quad q, int i) {
             temp1 = handle_quadop(f, q.op1);
             temp2 = handle_quadop(f, q.op2);
             temp3 = handle_quadop(f, q.res);
-            ecrit  = fprintf(f->sortie, "   la $a0, %s\n", temp1);
-            ecrit += fprintf(f->sortie, "   la $a1, %s\n", temp2);
-            ecrit += fprintf(f->sortie, "   jal compare\n");
-            ecrit += fprintf(f->sortie, "   beq $v0, 1, %s #TODO vérifier lbl\n", temp3);
+            ecrit  = fprintf(f->sortie, 
+                             "   la $a0, %s\n"
+                             "   la $a1, %s\n"
+                             "   jal compare\n"
+                             "   beq $v0, 1, %s\n", 
+                             temp1, temp2, temp3);
             free(temp1);
             free(temp2);
             free(temp3);
@@ -175,11 +188,27 @@ int handle_quad(struct file_asm * f, struct quad q, int i) {
         case Q_SET:
             temp1 = handle_quadop(f,q.op1);
             temp3 = handle_quadop(f,q.res);
-            ecrit = fprintf(f->sortie, "   la $a0, %s\n", temp3);
-            ecrit = fprintf(f->sortie, "   la $a1, %s\n", temp1);
-            ecrit = fprintf(f->sortie, "   la $a2, .empty_string\n");
-            ecrit = fprintf(f->sortie, "   jal concat\n");
+            ecrit  = fprintf(f->sortie, 
+                             "   la $a0, %s\n"
+                             "   la $a1, %s\n" 
+                             "   la $a2, .empty_string\n"
+                             "   jal concat\n",
+                             temp3, temp1);
             free(temp1);
+            free(temp3);
+            break;
+        case Q_CONCAT:
+            temp1 = handle_quadop(f, q.op1);
+            temp2 = handle_quadop(f, q.op2);
+            temp3 = handle_quadop(f, q.res);
+            ecrit  = fprintf(f->sortie,
+                             "   la $a0, %s\n"
+                             "   la $a1, %s\n"
+                             "   la $a2, %s\n"
+                             "   jal concat\n",
+                             temp3, temp1, temp2);
+            free(temp1);
+            free(temp2);
             free(temp3);
             break;
         case Q_EXIT:
@@ -190,11 +219,16 @@ int handle_quad(struct file_asm * f, struct quad q, int i) {
             f->pos_data += shift_write(f, f->pos_data, "   %s: .space %i\n",
                                        q.op1.ident,DEFAULT_VAR_SIZE);
 
-            f->pos_main += shift_write(f, f->pos_main, "#defaultval for %s\n",
-                                       q.op1.ident);
+            f->pos_main += shift_write(f, f->pos_main,
+                                       "# initialisation de %s\n"
+                                       "   la $t0, %s\n"
+                                       "   sb $t1, 0($t0)\n",
+                                       q.op1.ident, q.op1.ident);
             break;
         default:
             ecrit = fprintf(f->sortie, "   UNKNOWN\n");
+            fprintf(stderr, "quad n°%i non reconnu\n", i);
+            exit(1);
             break;
     }
     f->table_addr[i] = ftell(f->sortie) - f->pos_data - ecrit;
@@ -211,12 +245,18 @@ int trad_mips(FILE * sortie,struct quad* quad_table, int nextquad /*+ table des 
 
     fprintf(sortie, ".data\n");
     fprintf(sortie, "   .empty_string: .asciiz \"\"\n");
+    fprintf(sortie, "   .single_space: .asciiz \" \"\n");
+    fprintf(sortie, "   .align 2\n");
+    fprintf(sortie, "   %s: .word\n", SYMB_LAST_FUNC_RETURN);
+
     f.pos_data = ftell(sortie);
 
     fprintf(sortie, "\n.text\n");
     fprintf(sortie, ".globl main\n\nmain:\n");
+    fprintf(sortie, "# initialisations des variables (premier byte à zéro)\n");
+    fprintf(sortie, "   li $t1, 0\n");
     f.pos_main = ftell(sortie);
-
+    fprintf(sortie,"# fin des initialisations ----\n\n");
 
     f.table_label = malloc(nextquad*sizeof(int));
     for (int i = 0; i < nextquad; i++)
@@ -234,7 +274,7 @@ int trad_mips(FILE * sortie,struct quad* quad_table, int nextquad /*+ table des 
         struct quad q = quad_table[i];
         handle_quad(&f, q, i);
     }
-    
+
     char *chaine = malloc(MAX_OP_SIZE * sizeof(char));
     int position = f.pos_data;
     for (int i = 0; i < nextquad; i++)

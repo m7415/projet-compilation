@@ -73,6 +73,10 @@ enum quad_kind {
 struct quad {
     enum quad_kind kind;
     struct quadop op1, op2, res;
+    union { // infos en plus
+        char is_last; // dans un echo, 1 si c'est le dernier qo
+                      // 0 sinon (savoir si on met un esapce ou non)
+    } data;
 };
 
 void print_quad(struct quad q, FILE * file_);

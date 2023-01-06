@@ -24,6 +24,11 @@
 #define SYMB_OPERATEUR_2_GAUCHE ".op2_gauche"
 #define SYMB_OPERATEUR_2_DROITE ".op2_droite"
 
+// un symbole global qui contient le status de la dernière fonction exécutée
+#ifndef SYMB_LAST_FUNC_RETURN
+#define SYMB_LAST_FUNC_RETURN ".last_func_return"
+// -> fait dans mips.c
+#endif
 
 extern int yylex();
 extern void yyerror(const char * msg);
@@ -194,6 +199,8 @@ noreturn void fatal(const char *msg, ...)
         struct list * next;
         int isempty; // uniquement pour les st, vaut 1 is st est %empty
     } instr_type;
+
+    int nb_decl_loc; // nombre de variables locales dans une fonction
 }
 
 %token KW_IF KW_THEN KW_FOR KW_DO KW_DONE KW_IN KW_WHILE KW_UNTIL KW_CASE
@@ -223,6 +230,7 @@ noreturn void fatal(const char *msg, ...)
 %type<intval> M G
 %type<operateur1et2> operateur1 operateur2
 %type<op_arithm> opt_plus_ou_moins
+%type<nb_decl_loc> decl_loc
 
 %left '+' '-'
 %left '*' '/' '%'
@@ -246,6 +254,12 @@ programme : {
     // newname(ctx_stack, e);
     // newname(liste_symbole, e);
     // gencode(quad_declare(quadop_ident(e->name)));
+
+    // struct entry * e = create_entry(SYMB_LAST_FUNC_RETURN, E_STR);
+    // newname(ctx_stack, e);
+    // newname(liste_symbole, e);
+    // gencode(quad_declare(quadop_ident(e->name)));
+    // gencode(quad_set(quadop_ident(e->name),quadop_cst_string("0")));
 
     } liste_instructions {
     free_ctx_stack(ctx_stack, 0);
@@ -280,10 +294,9 @@ instruction
     if( lookup(ctx_stack, $1) == NULL ) {
         struct entry * id = create_entry($1, E_STR);
         newname(ctx_stack, id);
-        struct quad q_decl = quad_declare(ident);
-        gencode(q_decl);
         if( lookup(liste_symbole, $1) == NULL ) {
             newname(liste_symbole, id);
+            gencode(quad_declare(ident));
         }
     }
 
@@ -504,16 +517,20 @@ les goto qui pointent vers le quad juste après eux
             struct quadop id_tab = quadop_ident(next->val.tab.ident);
             struct quadop idx_tab = quadop_cst(next->val.tab.idx);
             gencode(quad_get_tab(id_tmp, id_tab, idx_tab));
-            gencode (quad_echo(id_tmp) );
+            gencode ( quad_echo(id_tmp) );
         }
         else { // si c'est un quadop normal, on l'echo simplement
         // remarque : s'il n'y a aucun QO_TAB_ELEM, alors aucune variable tmp
         // n'est générée
-            gencode(quad_echo(next->val));
+            gencode( quad_echo(next->val) );
         }
         next = next->next;
     }
+    global_code[nextquad-1].data.is_last = 1;
     qo_list_free($2.qo_list);
+    $$.next = NULL;
+}
+| declaration_de_fonction {
     $$.next = NULL;
 }
 | KW_EXIT {
@@ -978,10 +995,39 @@ operande_entier
 | O_PAR somme_entier C_PAR {
     $$.res = $2.res;
 }
+;
 
 opt_plus_ou_moins
 : PLUS_OU_MOINS { $$ = $1; }
 | %empty { $$ = op_none; }
+;
+
+declaration_de_fonction
+: IDENTIFIER O_PAR C_PAR O_CURLY_BRACKET {
+    pushctx(ctx_stack);
+} decl_loc liste_instructions C_CURLY_BRACKET {
+
+    DEBUG print_ctx_stack(ctx_stack);
+    popctx(ctx_stack,0);
+}
+;
+
+decl_loc
+: decl_loc KW_LOCAL IDENTIFIER EQUAL concatenation SEMICOLON {
+    struct entry * e = create_entry($3, E_LOC);
+    e->offset_sp = e->nb_decl_loc++;
+    struct quadop ident = quadop_ident(e->name);
+    newname(ctx_stack, e);
+    // newname(liste_symbole, e);
+    gencode(quad_set(ident, $5.res));
+    
+    $$ = 1 + $1;
+}
+| %empty {
+    $$ = 0;
+}
+;
+
 
 %%
 
