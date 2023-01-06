@@ -235,5 +235,20 @@ int trad_mips(FILE * sortie,struct quad* quad_table, int nextquad /*+ table des 
         handle_quad(&f, q, i);
     }
 
+
+    char *chaine = malloc(MAX_OP_SIZE * sizeof(char));
+    int position = f.pos_data;
+    for (int i = 0; i < nextquad; i++)
+    {
+        if (f.table_label[i] != -1)
+        {
+            position += f.table_addr[i];
+            sprintf(chaine,"_l%d:\n",f.table_label[i]);
+            shift_write(chaine, &position, sortie);
+            position = position - f.table_addr[i];
+        }
+    }
+    free(chaine);
+    
     return 0;
 }
