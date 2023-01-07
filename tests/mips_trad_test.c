@@ -38,9 +38,13 @@ int mips_test(){
         sprintf(namefile,"./tests/in/%s.sh",filenames[i]);
         char * namefile_out = malloc(MAX_BUFFER_SIZE * sizeof(char));
         sprintf(namefile_out,"./tests/out/%s_out.asm",filenames[i]);
+        char * namefile_out_quads = malloc(MAX_BUFFER_SIZE * sizeof(char));
+        sprintf(namefile_out_quads,"./tests/out/%s_out.q",filenames[i]);
 
         FILE * sortie = fopen(namefile_out,"w+");
+        FILE * sortie_quads = fopen(namefile_out_quads,"w+");
         yyin = fopen(namefile, "r");
+
 
         if (sortie == NULL) {
             fprintf(stderr, "Error: unable to open output file %s\n",filenames[i]);
@@ -59,7 +63,13 @@ int mips_test(){
             printf("FUCK !\n");
             return 1;
         }
-        
+
+        for(int i=0; i<nextquad; i++) {
+            fprintf(sortie_quads, "%-3i: ", i);
+            print_quad(global_code[i], sortie_quads);
+        }
+
+        fclose(sortie_quads);
         // Traduction en MIPS
         if (trad_mips(sortie,global_code,nextquad) == 0) {
             printf("La traduction de %s à réussie !\n",filenames[i]);

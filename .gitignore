@@ -17,3 +17,4 @@ bin
 *.asm
 *.jar
 mips_libs/exec
+*.q
