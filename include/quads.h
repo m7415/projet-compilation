@@ -76,6 +76,7 @@ struct quad {
     union { // infos en plus
         char is_last; // dans un echo, 1 si c'est le dernier qo
                       // 0 sinon (savoir si on met un esapce ou non)
+        int taille; // pour get_tab et set_tab, taille du tableau
     } data;
 };
 
