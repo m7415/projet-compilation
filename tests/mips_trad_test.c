@@ -4,7 +4,7 @@
 #include "compil.tab.h"
 
 #define NB_TESTS 16
-#define NB_TESTS_TESTES 5
+#define NB_TESTS_TESTES 16
 
 extern int nextquad;
 
@@ -22,12 +22,12 @@ int mips_test(){
         "test_cond",
         "test_elif",
         "test_empty",
-        "test_for",
         "test_func",
-        "test_str_cond",
-        "test_tab",
         "test_until",
-        "test_while"
+        "test_while",
+        "test_tab",
+        "test_for",
+        "test_str_cond"
     };
 
     int i = 0;
@@ -62,9 +62,9 @@ int mips_test(){
         
         // Traduction en MIPS
         if (trad_mips(sortie,global_code,nextquad) == 0) {
-            printf("La traduction numero %ld à réussie !\n",i);
+            printf("La traduction de %s à réussie !\n",filenames[i]);
             } else {
-            printf("La traduction numero %ld à échoué.\n",i);
+            printf("La traduction de %s à échoué.\n",filenames[i]);
         }
     }
 
