@@ -1,4 +1,4 @@
-#include "mips_test.h"
+#include "mips_trad_test.h"
 
 #include "compil.yy.h"
 #include "compil.tab.h"
@@ -60,7 +60,12 @@ int mips_test(){
             return 1;
         }
         
-        trad_mips(sortie,global_code,nextquad);
+        // Traduction en MIPS
+        if (trad_mips(sortie,global_code,nextquad) == 0) {
+            printf("La traduction numero %ld à réussie !\n",i);
+            } else {
+            printf("La traduction numero %ld à échoué.\n",i);
+        }
     }
 
     fclose(yyin);
