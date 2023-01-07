@@ -1,22 +1,24 @@
 echo "début test_calculs\n";
 
-echo $(expr -3 + 2);
-echo $(expr 3 - 2);
-echo $(expr 3 * 2);
-echo $(expr 3 / 2);
-echo $(expr 3 % 2);
+# a = $(expr -4);
+# a = "-7";
+a = 7;
 
-echo "\n--------------\n";
+echo "a =" ${a} "\n";
+echo "-a =" $(expr -${a}) "\n";
+echo "a + 2 =" $(expr ${a} + 2) "\n";
+echo "a - 2 =" $(expr ${a} - 2) "\n";
+echo "3 * a =" $(expr 3 * ${a}) "\n";
+echo "a / 3 =" $(expr ${a} / 3) "\n";
+echo "a % 3 =" $(expr ${a} % 3) "\n";
 
-a = $(expr (3 + 2) * ((4/2) * (-5)));
+echo "--------------\n";
 
-echo ${a};
+echo "(a + -2) * -a =" $(expr (${a} + -2) * -${a}) "\n";
 
-echo "\n--------------\n";
+echo "--------------\n";
+b = $(expr (3 + 2) * ((4/2) * (-5)) % 15);
+echo "(3+2)*((4/2)*(-5)) % 15 =" ${b} "\n";
 
-# a = 5;
-
-echo $(expr (${a} + -2) * -${a});
-
-echo "\nfin\n";
+echo "fin\n";
 exit

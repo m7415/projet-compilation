@@ -8,12 +8,14 @@
     str2: .asciiz "TRUCDEOUF"
     nullstr: .asciiz ""
     .align 2 # pour que resultat soit bien aligné, si on veut s'en servir comme d'un int
-    resultat: .space 128
+    resultat: .word
     str3: .asciiz "abc123"
     str4: .asciiz "123abc"
-    str5: .asciiz "004090"
+    str5: .asciiz "84091"
     est_entier: .asciiz " c'est un entier !"
     est_pas_entier: .asciiz " c'est pas un entier !"
+    reconvert: .asciiz "reconversion en str : "
+    variable: .space 1024
 
 .text
 .globl main
@@ -39,6 +41,22 @@ main:
     lw $a0, resultat
     syscall # <entier>
     
+    li $v0, 4
+    la $a0, linefeed
+    syscall # \n
+
+    li $v0, 4
+    la $a0, reconvert
+    syscall # Reconversion en str :
+
+    lw $a0, resultat
+    la $a1, variable
+    jal convert_string
+
+    li $v0, 4
+    la $a0, variable
+    syscall
+
     li $v0, 4
     la $a0, linefeed
     syscall # \n
