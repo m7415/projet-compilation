@@ -31,7 +31,7 @@ GENERATEDSRCDIR=./generated-src
 OBJDIR=./obj
 
 # arguments de gcc
-ARGS=-g -Wall -Wextra
+ARGS=-g -Wall -Wextra -Wno-format-truncation
 
 # librairies à linker dans gcc
 LDLIBS=-lfl
@@ -47,6 +47,10 @@ MAIN_TESTS_C:=$(SRCDIR)/$(exec_tests).c
 SRC:=$(wildcard $(SRCDIR)/*.c)
 SRC_WO_TEST:=$(filter-out $(MAIN_TESTS_C), $(SRC))
 SRC_TEST := $(wildcard $(TESTDIR)/*.c)
+
+# supprimer l'un des deux mips
+SRC_WO_TEST:=$(filter-out ./src/mips_sim.c, $(SRC_WO_TEST))
+# SRC_WO_TEST:=$(filter-out ./src/mips.c, $(SRC_WO_TEST))
 
 INCLUDES:=$(wildcard $(INCLUDEDIR)/*.h) $(bisonfile).tab.h
 INCLUDES_TEST := $(wildcard $(TESTDIR)/*.h)
@@ -85,6 +89,7 @@ $(BINDIR)/$(exec): $(OBJECT_BISON) $(OBJECT_FLEX) $(OBJECTS_WO_TEST) $(MAIN_COMP
 tests: $(OBJECT_BISON) $(OBJECT_FLEX) $(OBJECTS_WO_TEST) $(OBJECTS_TEST) $(MAIN_TESTS_C)
 	@mkdir -p $(BINDIR)
 	gcc -o $(BINDIR)/$(exec_tests) $^ -I$(INCLUDEDIR) -I. $(ARGS) $(LDLIBS)
+	mkdir -p ${TESTDIR}/out
 	$(BINDIR)/$(exec_tests)
 
 .PHONY: clean
