@@ -5,7 +5,7 @@
 // Inclure les en-têtes de tous les tests
 #include "./tests/lexical_test.h"
 #include "./tests/syntax_test.h"
-#include "./tests/mips_test.h"
+#include "./tests/mips_trad_test.h"
 
 
 int main() {

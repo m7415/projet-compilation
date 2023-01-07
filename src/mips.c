@@ -225,6 +225,102 @@ int handle_quad(struct file_asm * f, struct quad q, int i) {
                                        "   sb $t1, 0($t0)\n",
                                        q.op1.ident, q.op1.ident);
             break;
+        case Q_IFEQ:
+            temp1 = handle_quadop(f, q.op1);
+            temp2 = handle_quadop(f, q.op2);
+            temp3 = handle_quadop(f, q.res);
+            ecrit  = fprintf(f->sortie,
+                             "   la $a0, %s\n"
+                             "   jal convert_entier\n"
+                             "   move $a1, $v0\n"
+                             "   la $a0, %s\n"
+                             "   jal convert_entier\n"
+                             "   beq $v0, $a1, %s\n",
+                             temp1, temp2,temp3);
+            free(temp1);
+            free(temp2);
+            free(temp3);
+            break;
+        case Q_IFDIFF:
+            temp1 = handle_quadop(f, q.op1);
+            temp2 = handle_quadop(f, q.op2);
+            temp3 = handle_quadop(f, q.res);
+            ecrit  = fprintf(f->sortie,
+                             "   la $a0, %s\n"
+                             "   jal convert_entier\n"
+                             "   move $a1, $v0\n"
+                             "   la $a0, %s\n"
+                             "   jal convert_entier\n"
+                             "   bne $v0, $a1, %s\n",
+                             temp1, temp2,temp3);
+            free(temp1);
+            free(temp2);
+            free(temp3);
+            break;
+        case Q_IFGT:
+            temp1 = handle_quadop(f, q.op1);
+            temp2 = handle_quadop(f, q.op2);
+            temp3 = handle_quadop(f, q.res);
+            ecrit  = fprintf(f->sortie,
+                             "   la $a0, %s\n"
+                             "   jal convert_entier\n"
+                             "   move $a1, $v0\n"
+                             "   la $a0, %s\n"
+                             "   jal convert_entier\n"
+                             "   bgt $v0, $a1, %s\n",
+                             temp1, temp2,temp3);
+            free(temp1);
+            free(temp2);
+            free(temp3);
+            break;
+        case Q_IFGE:
+            temp1 = handle_quadop(f, q.op1);
+            temp2 = handle_quadop(f, q.op2);
+            temp3 = handle_quadop(f, q.res);
+            ecrit  = fprintf(f->sortie,
+                             "   la $a0, %s\n"
+                             "   jal convert_entier\n"
+                             "   move $a1, $v0\n"
+                             "   la $a0, %s\n"
+                             "   jal convert_entier\n"
+                             "   bge $v0, $a1, %s\n",
+                             temp1, temp2,temp3);
+            free(temp1);
+            free(temp2);
+            free(temp3);
+            break;
+        case Q_IFLT:
+            temp1 = handle_quadop(f, q.op1);
+            temp2 = handle_quadop(f, q.op2);
+            temp3 = handle_quadop(f, q.res);
+            ecrit  = fprintf(f->sortie,
+                             "   la $a0, %s\n"
+                             "   jal convert_entier\n"
+                             "   move $a1, $v0\n"
+                             "   la $a0, %s\n"
+                             "   jal convert_entier\n"
+                             "   blt $v0, $a1, %s\n",
+                             temp1, temp2,temp3);
+            free(temp1);
+            free(temp2);
+            free(temp3);
+            break;
+        case Q_IFLE:
+            temp1 = handle_quadop(f, q.op1);
+            temp2 = handle_quadop(f, q.op2);
+            temp3 = handle_quadop(f, q.res);
+            ecrit  = fprintf(f->sortie,
+                             "   la $a0, %s\n"
+                             "   jal convert_entier\n"
+                             "   move $a1, $v0\n"
+                             "   la $a0, %s\n"
+                             "   jal convert_entier\n"
+                             "   ble $v0, $a1, %s\n",
+                             temp1, temp2,temp3);
+            free(temp1);
+            free(temp2);
+            free(temp3);
+            break;
         default:
             ecrit = fprintf(f->sortie, "   UNKNOWN\n");
             fprintf(stderr, "quad n°%i non reconnu\n", i);

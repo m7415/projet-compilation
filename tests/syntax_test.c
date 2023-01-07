@@ -9,21 +9,37 @@
 #include "compil.tab.h"
 
 
-#define NB_TESTS 2
+#define NB_TESTS 16
 #define MAX_BUFFER_SIZE 1024
 
 int syntax_test() {
-  int passed = 0;
+  char *filenames[NB_TESTS] = {
+    "./tests/in/test_arithm_cond.sh",
+    "./tests/in/test_calculs.sh",
+    "./tests/in/test_cond.sh",
+    "./tests/in/test_elif.sh",
+    "./tests/in/test_empty.sh",
+    "./tests/in/test_for.sh",
+    "./tests/in/test_func.sh",
+    "./tests/in/test_str_cond.sh",
+    "./tests/in/test_tab.sh",
+    "./tests/in/test_until.sh",
+    "./tests/in/test_while.sh",
+    "./tests/in/test0.sh",
+    "./tests/in/test1.sh",
+    "./tests/in/test2.sh",
+    "./tests/in/test3.sh",
+    "./tests/in/test4.sh"
+  };
 
-  char * namefile = malloc(MAX_BUFFER_SIZE * sizeof(namefile));
+  int passed = 0;
 
   for (size_t i = 0; i < NB_TESTS; i++)
   {
-    sprintf(namefile,"./tests/test%ld.txt",i);
     // Ouvrir le fichier de test
-    yyin = fopen(namefile, "r");
+    yyin = fopen(filenames[i], "r");
     if (yyin == NULL) {
-      fprintf(stderr, "Error: unable to open input file test%ld.txt\n",i);
+      fprintf(stderr, "Error: unable to open input file %s\n",filenames[i]);
       return 1;
     }
     /* char c;
@@ -45,7 +61,6 @@ int syntax_test() {
 
   }
   fclose(yyin);
-  free(namefile);
 
   return passed;
 }
