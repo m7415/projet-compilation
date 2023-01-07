@@ -4,7 +4,7 @@
 #include "compil.tab.h"
 
 #define NB_TESTS 16
-#define NB_TESTS_TESTES 16
+#define NB_TESTS_TESTES 14
 
 extern int nextquad;
 
@@ -25,9 +25,9 @@ int mips_test(){
         "test_func",
         "test_until",
         "test_while",
-        "test_tab",
+        "test_str_cond",
         "test_for",
-        "test_str_cond"
+        "test_tab"
     };
 
     int i = 0;

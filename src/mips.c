@@ -143,6 +143,30 @@ int handle_quad(struct file_asm * f, struct quad q, int i) {
             }
             free(temp1);
             break;
+        case Q_IFNULL_STR:
+            temp1 = handle_quadop(f, q.op1);
+            temp2 = handle_quadop(f, q.res);
+            ecrit  = fprintf(f->sortie, 
+                             "   la $a0, %s\n"
+                             "   la $a1, .empty_string\n"
+                             "   jal compare\n"
+                             "   beq $v0, 0, %s\n", 
+                             temp1, temp2);
+            free(temp1);
+            free(temp2);
+            break;
+        case Q_IFNOTNULL_STR:
+            temp1 = handle_quadop(f, q.op1);
+            temp2 = handle_quadop(f, q.res);
+            ecrit  = fprintf(f->sortie, 
+                             "   la $a0, %s\n"
+                             "   la $a1, .empty_string\n"
+                             "   jal compare\n"
+                             "   bne $v0, 0, %s\n", 
+                             temp1, temp2);
+            free(temp1);
+            free(temp2);
+            break;
         case Q_IFEQ_STR:
             temp1 = handle_quadop(f, q.op1);
             temp2 = handle_quadop(f, q.op2);
