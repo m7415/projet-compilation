@@ -14,9 +14,11 @@
 #define MAX_MIPS_ID 32
 #define DEFAULT_VAR_SIZE 1024
 
+
 #ifndef SYMB_LAST_FUNC_RETURN
 #define SYMB_LAST_FUNC_RETURN ".last_func_return"
 #endif
+
 
 // un objet pour contenir les infos
 // du fichier (au lieu de passer 15 args à chaque fois)
@@ -24,10 +26,12 @@ struct file_asm {
     FILE * sortie;
     int pos_data;
     int pos_main;
+    int pos_initiale_main;
     int * table_label;
     int * table_addr;
     int numstr;
     int numlab;
+    int nbquad;
 };
 
 // écrit à la position demandée, et renvois le nombre d'octets écrit

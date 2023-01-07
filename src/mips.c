@@ -42,9 +42,17 @@ int shift_write(struct file_asm * f, int position, char *chaine, ...) {
     }
     if(f->pos_main > position) {
         f->pos_main += r;
+    }    
+    for (int i = 0; i < f->nbquad; i++)
+    {
+        if (f->table_addr[i] > position)
+        {
+            f->table_addr[i] += r;
+        }
     }
     return r;
 }
+
 
 
 
@@ -143,30 +151,6 @@ int handle_quad(struct file_asm * f, struct quad q, int i) {
             }
             free(temp1);
             break;
-        case Q_IFNULL_STR:
-            temp1 = handle_quadop(f, q.op1);
-            temp2 = handle_quadop(f, q.res);
-            ecrit  = fprintf(f->sortie, 
-                             "   la $a0, %s\n"
-                             "   la $a1, .empty_string\n"
-                             "   jal compare\n"
-                             "   beq $v0, 0, %s\n", 
-                             temp1, temp2);
-            free(temp1);
-            free(temp2);
-            break;
-        case Q_IFNOTNULL_STR:
-            temp1 = handle_quadop(f, q.op1);
-            temp2 = handle_quadop(f, q.res);
-            ecrit  = fprintf(f->sortie, 
-                             "   la $a0, %s\n"
-                             "   la $a1, .empty_string\n"
-                             "   jal compare\n"
-                             "   bne $v0, 0, %s\n", 
-                             temp1, temp2);
-            free(temp1);
-            free(temp2);
-            break;
         case Q_IFEQ_STR:
             temp1 = handle_quadop(f, q.op1);
             temp2 = handle_quadop(f, q.op2);
@@ -196,9 +180,13 @@ int handle_quad(struct file_asm * f, struct quad q, int i) {
             free(temp3);
             break;
         case Q_GOTO:
-            temp1 = handle_quadop(f,q.res);
-            ecrit = fprintf(f->sortie, "   b %s\n", temp1);
-            free(temp1);
+            if(q.res.kind != QO_CST_STRING ) {
+                temp1 = handle_quadop(f,q.res);
+                ecrit = fprintf(f->sortie, "   b %s\n", temp1);
+                free(temp1);
+            } else {
+                ecrit = fprintf(f->sortie, "   b %s\n", q.res.cst_str);
+            }
             break;
         case Q_GOTO_UNKNOWN:
             ecrit = fprintf(f->sortie, "   b UNKNOWN\n");
@@ -220,6 +208,38 @@ int handle_quad(struct file_asm * f, struct quad q, int i) {
                              temp3, temp1);
             free(temp1);
             free(temp3);
+            break;
+        case Q_SET_TAB:
+            temp1 = handle_quadop(f,q.op1); // index tab
+            temp2 = handle_quadop(f,q.op2); // valeur 
+            temp3 = handle_quadop(f,q.res); // ident tab
+            ecrit  = fprintf(f->sortie, 
+                             "   # %s[%s] <- %s\n"
+                             "   la $a0, %s\n"
+                             "   jal convert_entier # conversion index\n"
+                             "   move $s0, $v0 # stockage\n"
+                             "   blt $s0, 0, erreur_out_of_range\n"
+                             "   bge $s0, %i, erreur_out_of_range\n"
+                             "   mul $s0, $s0, 4 # pour l'addresse dans le tableau\n"
+                             "   la $a0, $s0(%s)\n"
+                             "   la $a1, %s\n"
+                             "   la $a2, .empty_string\n"
+                             "   jal concat\n"
+                             "   # ----\n",
+                             temp3,temp1,temp2,
+                             temp1,
+                             q.data.taille,
+                             temp3,
+                             temp2);
+            free(temp1);
+            free(temp2);
+            free(temp3);
+            break;
+        case Q_GET_TAB:
+            // ecrit = fprintf(f->sortie,
+            //                 "   li $v0, 10\n"
+            //                 "   syscall\n"
+            //                 );
             break;
         case Q_CONCAT:
             temp1 = handle_quadop(f, q.op1);
@@ -248,6 +268,16 @@ int handle_quad(struct file_asm * f, struct quad q, int i) {
                                        "   la $t0, %s\n"
                                        "   sb $t1, 0($t0)\n",
                                        q.op1.ident, q.op1.ident);
+            break;
+        case Q_DECLARE_TAB:
+            f->pos_data += shift_write(f, f->pos_data, 
+                                       "   .align 2\n"
+                                       "   %s: .space %i # %i*4\n",
+                                       q.op1.ident,4*q.op2.cst, q.op2.cst);
+
+            f->pos_main += shift_write(f, f->pos_main,
+                                       "# initialisation du tableau %s\n",
+                                       q.op1.ident);
             break;
         case Q_IFEQ:
             temp1 = handle_quadop(f, q.op1);
@@ -481,7 +511,7 @@ int handle_quad(struct file_asm * f, struct quad q, int i) {
             exit(1);
             break;
     }
-    f->table_addr[i] = ftell(f->sortie) - f->pos_data - ecrit;
+    f->table_addr[i] = ftell(f->sortie) - ecrit;
     return 0;
 }
 
@@ -492,6 +522,7 @@ int trad_mips(FILE * sortie,struct quad* quad_table, int nextquad /*+ table des 
     f.sortie = sortie;
     f.numstr = 0;
     f.numlab = 0;
+    f.nbquad = nextquad;
 
     fprintf(sortie, ".data\n");
     fprintf(sortie, "   .empty_string: .asciiz \"\"\n");
@@ -506,6 +537,7 @@ int trad_mips(FILE * sortie,struct quad* quad_table, int nextquad /*+ table des 
     fprintf(sortie, "# initialisations des variables (premier byte à zéro)\n");
     fprintf(sortie, "   li $t1, 0\n");
     f.pos_main = ftell(sortie);
+    f.pos_initiale_main = f.pos_main;
     fprintf(sortie,"# fin des initialisations ----\n\n");
 
     f.table_label = malloc(nextquad*sizeof(int));
@@ -526,14 +558,11 @@ int trad_mips(FILE * sortie,struct quad* quad_table, int nextquad /*+ table des 
     }
 
     char *chaine = malloc(MAX_OP_SIZE * sizeof(char));
-    int position = f.pos_data;
     for (int i = 0; i < nextquad; i++)
     {
         if (f.table_label[i] != -1)
         {
-            position += f.table_addr[i];
-            position += shift_write(&f, position, "_l%d:\n", f.table_label[i]);
-            position = position - f.table_addr[i];
+            shift_write(&f, f.table_addr[i], "_l%d:\n", f.table_label[i]);
         }
     }
     free(chaine);
