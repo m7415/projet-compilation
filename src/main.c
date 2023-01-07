@@ -22,6 +22,8 @@ int main(int argc, char* argv[]){
 
     int option;
 
+    int print_tos = 1;
+
     FILE * output = stdout;
 
     static struct option long_options[] = {
@@ -35,19 +37,18 @@ int main(int argc, char* argv[]){
         switch(option) {
         case 'h':
             printf("Usage : %s [-h] [-o fichier_sortie] fichier_entree\n", argv[0]);
-            return 0;
+            break;
         case 'v':
             printf("Simon PERNAS\n"
                    "Anthony RIGOLI\n"
                    "Baptiste SALIOU\n"
                    "Maxime PETITPOISSON\n");
-            return 0;
+            break;
         case 'o':
             output = fopen(optarg, "w+");
             break;
         case 't':
-            /* printf("liste des symboles :\n");
-            print_ctx_stack(liste_symbole); */
+            print_tos = 0;
             break;
         default:
             fprintf(stderr, "Option inconnue ou argument manquant : '%c'\n", optopt);
@@ -79,6 +80,13 @@ int main(int argc, char* argv[]){
     if(t != 0) {
         return 1;
     }
+
+    if (print_tos == 0)
+    {
+        printf("Table des symboles :\n");
+        print_ctx_stack(liste_symbole);
+    }
+    
 
     trad_mips(output, global_code, nextquad);
 
