@@ -222,6 +222,76 @@ int handle_quad(struct file_asm * f, struct quad q, int i) {
         case Q_BIDON2:
             ecrit = fprintf(f->sortie, "   BIDON2\n");
             break;
+        case Q_READ:
+            temp3 = handle_quadop(f, q.res);
+            ecrit = fprintf(f->sortie,
+                            "   # read -> %s\n"
+                            "   li $v0, 8\n"
+                            "   la $a0, .buffer_read # @ buf\n"
+                            "   la $a1, %i # buf size\n"
+                            "   syscall # read_str\n"
+                            "   la $a0, .buffer_read\n"
+                            "   jal strlen\n"
+                            "   subi $t0, $v0, 1\n"
+                            "   la $t2, .buffer_read\n"
+                            "   add $t0, $t0, $t2\n"
+                            "   li $t1, 0\n"
+                            "   sb $t1, ($t0) #suppresion \\n\n"
+                            "   la $a0, .buffer_read\n"
+                            "   jal copy_string\n"
+                            // "   move $s0, $v0 #stockage de la copie dans $s0\n"
+                            "   la $a0, %s # res\n "
+                            "   move $a1, $v0 # val\n"
+                            "   la $a2, .empty_string\n"
+                            "   jal concat\n"
+                            "",
+                            temp3,
+                            DEFAULT_VAR_SIZE,
+                            temp3);
+            free(temp3);
+            break;
+        case Q_READ_TAB:
+            temp1 = handle_quadop(f, q.op1); // idx
+            temp3 = handle_quadop(f, q.res); // ident tab
+            ecrit = fprintf(f->sortie,
+                            "   # read -> %s[%s]\n"
+                            "   li $v0, 8\n"
+                            "   la $a0, .buffer_read # @ buf\n"
+                            "   la $a1, %i # buf size\n"
+                            "   syscall # read_str\n"
+                            "   la $a0, .buffer_read\n"
+                            "   jal strlen\n"
+                            "   subi $t0, $v0, 1\n"
+                            "   la $t2, .buffer_read\n"
+                            "   add $t0, $t0, $t2\n"
+                            "   li $t1, 0\n"
+                            "   sb $t1, ($t0) #suppresion \\n\n"
+                            "   la $a0, .buffer_read\n"
+                            "   jal copy_string\n"
+                            "   move $s3, $v0 #stockage de la copie dans $s3\n"
+
+                            "   # tab_set\n"
+                            "   la $a0, %s\n"
+                            "   jal convert_entier # conversion index\n"
+                            "   move $s0, $v0 # stockage de l'index dans $s0\n"
+                            "   la $a0, .empty_string\n"
+                            "   move $a1, $s0 # en cas d'erreur\n"
+                            "   blt $s0, 0, erreur_out_of_range\n"
+                            "   bge $s0, %i, erreur_out_of_range\n"
+
+                            "   mul $s0, $s0, 4 # pour l'addresse dans le tableau\n"
+                            "   la $t0, %s # addresse du tableau \n"
+                            "   add $t0, $t0, $s0 # addresse de la case \n"
+                            "   sw $s3, ($t0) # on stocke la copie\n"
+                            "   # ----\n"
+                            "",
+                            temp3, temp1, 
+                            DEFAULT_VAR_SIZE,
+                            temp1,
+                            q.data.taille,
+                            temp3);
+            free(temp3);
+            break;
         case Q_SET:
             temp1 = handle_quadop(f,q.op1);
             temp3 = handle_quadop(f,q.res);
@@ -597,6 +667,7 @@ int trad_mips(FILE * sortie,struct quad* quad_table, int nextquad /*+ table des 
     fprintf(sortie, ".data\n");
     fprintf(sortie, "   .empty_string: .asciiz \"\"\n");
     fprintf(sortie, "   .single_space: .asciiz \" \"\n");
+    fprintf(sortie, "   .buffer_read: .space %i\n", DEFAULT_VAR_SIZE);
     fprintf(sortie, "   .align 2\n");
     fprintf(sortie, "   %s: .word\n", SYMB_LAST_FUNC_RETURN);
 

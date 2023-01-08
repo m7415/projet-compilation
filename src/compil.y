@@ -548,6 +548,33 @@ les goto qui pointent vers le quad juste après eux
 | declaration_de_fonction {
     $$.next = NULL;
 }
+| KW_READ IDENTIFIER {
+    struct quadop ident = quadop_ident($2);
+
+    if( lookup(ctx_stack, $2) == NULL ) {
+        struct entry * id = create_entry($2, E_STR);
+        newname(ctx_stack, id);
+        if( lookup(liste_symbole, $2) == NULL ) {
+            newname(liste_symbole, id);
+            gencode(quad_declare(ident));
+        }
+    }
+    gencode(quad_read(ident));
+    $$.next = NULL;
+}
+| KW_READ IDENTIFIER O_BRACKET operande_entier C_BRACKET {
+    struct quadop ident = quadop_ident($2);
+    struct entry * e = lookup(ctx_stack,$2);
+    if( e == NULL ) {
+        fatal("Read dans un tableau qui n'existe pas : '%s'\n", $2);
+    }
+    if( e->type != E_TAB ) {
+        fatal("Read dans un tableau mais la variable n'est pas un tableau '%s'\n", $2);
+    }
+    gencode(quad_read_tab(ident, $4.res));
+    global_code[nextquad-1].data.taille = e->taille;
+    $$.next = NULL;
+}
 | KW_EXIT {
     struct quad q = quad_exit(0);
     gencode(q);

@@ -204,6 +204,17 @@ void print_quad(struct quad q, FILE * file_) {
         print_quadop(q.op2, file);
         fprintf(file, ")");
     }
+    else if(q.kind == Q_READ) {
+        fprintf(file, "READ IN ");
+        print_quadop(q.res,file);
+    }
+    else if (q.kind == Q_READ_TAB) {
+        fprintf(file, "READ IN TAB ");
+        print_quadop(q.res, file);
+        fprintf(file, "[");
+        print_quadop(q.op1, file);
+        fprintf(file, "]");
+    }
     else {
         fprintf(file, "UNRECOGNIZED QUAD");
     }
@@ -536,3 +547,20 @@ struct quad quad_concat(struct quadop ident, struct quadop op1, struct quadop op
     q.op2 = op2;
     return q;
 }
+
+struct quad quad_read(struct quadop ident) {
+    struct quad q;
+    q.kind = Q_READ;
+    q.res = ident;
+    return q;
+}
+
+struct quad quad_read_tab(struct quadop ident, struct quadop idx) {
+    struct quad q;
+    q.kind = Q_READ_TAB;
+    q.res = ident;
+    q.op1 = idx;
+    return q;
+}
+
+
