@@ -5,8 +5,8 @@
 #include <stdio.h>
 #include "quads.h" // pour récupérer MAX_IDENT_SIZE, MAX_STRING_SIZE
 
-#define MAX_SYMB_IN_CTX 256  // nombre max de symbole dans un contexte
-                             // (pour faire que des tableaux statiques)
+#define MAX_SYMB_IN_CTX 1024  // nombre max de symbole dans un contexte
+                              // (pour faire que des tableaux statiques)
 
 
 enum entry_type {
