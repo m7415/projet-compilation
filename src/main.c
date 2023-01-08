@@ -57,7 +57,7 @@ int main(int argc, char* argv[]){
     }
 
     // Les arguments restants (s'il y en a) sont traités ici
-    char *filename = malloc(MAX_BUFF_SIZE*sizeof(char));
+    char *filename;
     if(optind < argc) {
         filename = argv[optind];
     } else {
@@ -75,6 +75,7 @@ int main(int argc, char* argv[]){
     nextquad = 0;
     int t = yyparse();
     
+    fclose(yyin);
     yylex_destroy(); // juste pour valgrind <3
 
     if(t != 0) {
