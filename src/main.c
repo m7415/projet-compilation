@@ -26,6 +26,7 @@ int main(int argc, char* argv[]){
     int print_q = 1;
 
     FILE * output = stdout;
+    FILE * output_quad = stdout;
 
     static struct option long_options[] = {
         {"version", no_argument, 0, 'v'},
@@ -34,7 +35,7 @@ int main(int argc, char* argv[]){
     };
 
     // Traitement des options en utilisant getopt
-    while((option = getopt_long(argc, argv, "hvo:tq",long_options,NULL)) != -1) {
+    while((option = getopt_long(argc, argv, "hvo:tq::",long_options,NULL)) != -1) {
         switch(option) {
         case 'h':
             printf("Usage : %s [-h] [-v --version] [-o fichier_sortie] [-t --tos] [-q] fichier_entree\n", argv[0]);
@@ -52,6 +53,9 @@ int main(int argc, char* argv[]){
             print_tos = 0;
             break;
         case 'q':
+            if (optarg) {
+                output_quad = fopen(optarg, "w+");
+            }
             print_q = 0;
             break;
         default:
@@ -96,7 +100,7 @@ int main(int argc, char* argv[]){
     {
         printf("nbre total de quads : %i\n",nextquad);
         for(int i=0; i<nextquad; i++) {
-            fprintf(output, "%-3i: ", i);
+            fprintf(output_quad, "%-3i: ", i);
             print_quad(global_code[i], output);
         }
     }
