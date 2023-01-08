@@ -10,6 +10,8 @@ extern int nextquad;
 
 extern struct quad global_code[1<<16];
 
+extern struct ctx_stack * liste_symbole;
+
 int mips_test(){
     char *filenames[NB_TESTS] = {
         "test0",
@@ -32,14 +34,14 @@ int mips_test(){
 
     int i = 0;
 
+    char namefile[MAX_BUFFER_SIZE];
+    char namefile_out[MAX_BUFFER_SIZE];
+    char namefile_out_quads[MAX_BUFFER_SIZE];
     for (int i = 0; i < NB_TESTS_TESTES; i++)
     {
-        char * namefile = malloc(MAX_BUFFER_SIZE * sizeof(char));
-        sprintf(namefile,"./tests/in/%s.sh",filenames[i]);
-        char * namefile_out = malloc(MAX_BUFFER_SIZE * sizeof(char));
-        sprintf(namefile_out,"./tests/out/%s_out.asm",filenames[i]);
-        char * namefile_out_quads = malloc(MAX_BUFFER_SIZE * sizeof(char));
-        sprintf(namefile_out_quads,"./tests/out/%s_out.q",filenames[i]);
+        snprintf(namefile,MAX_BUFFER_SIZE,"./tests/in/%s.sh",filenames[i]);
+        snprintf(namefile_out,MAX_BUFFER_SIZE,"./tests/out/%s_out.asm",filenames[i]);
+        snprintf(namefile_out_quads,MAX_BUFFER_SIZE,"./tests/out/%s_out.q",filenames[i]);
 
         FILE * sortie = fopen(namefile_out,"w+");
         FILE * sortie_quads = fopen(namefile_out_quads,"w+");
@@ -56,9 +58,8 @@ int mips_test(){
             return 1;
         }
 
-        nextquad = 0;
-        yyrestart(yyin);
         int t = yyparse();
+        
         if(t != 0){
             printf("FUCK !\n");
             return 1;
@@ -70,14 +71,20 @@ int mips_test(){
         }
 
         fclose(sortie_quads);
+        
         // Traduction en MIPS
         if (trad_mips(sortie,global_code,nextquad) == 0) {
             printf("La traduction de %s à réussie !\n",filenames[i]);
             } else {
             printf("La traduction de %s à échoué.\n",filenames[i]);
         }
+
+        nextquad = 0;
+        // free_ctx_stack(liste_symbole,1);
+        yyrestart(yyin);
     }
 
     fclose(yyin);
+    // free_ctx_stack(liste_symbole,1);
     return 0;
 }

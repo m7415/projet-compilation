@@ -328,7 +328,7 @@ instruction
     newname_global(ctx_stack, id);
     newname_global(liste_symbole, id); // pas forcement besoin de "global" ici
     struct quadop ident = quadop_ident(id->name);
-    struct quadop taille = quadop_cst_string($4);
+    struct quadop taille = quadop_cst(atoi($4));
     gencode( quad_declare_tab(ident, taille) );
     $$.next = NULL;
 }
@@ -341,16 +341,17 @@ instruction
         fatal("Cette variable n'est pas un tableau : '%s'\n", $1);
     }
 
-    char tmp[32];
-    snprintf(tmp, 32, "%i", ident->taille);
-    struct quad q_verif_index = quad_ifge($3.res, quadop_cst_string(tmp));
-    q_verif_index.res = quadop_cst_string("erreur_out_of_range");
-    struct quad q_verif_index2 = quad_iflt($3.res, quadop_cst_string("0"));
-    q_verif_index2.res = quadop_cst_string("erreur_out_of_range");
-    gencode(q_verif_index);
-    gencode(q_verif_index2);
+    // char tmp[32];
+    // snprintf(tmp, 32, "%i", ident->taille);
+    // struct quad q_verif_index = quad_ifge($3.res, quadop_cst_string(tmp));
+    // q_verif_index.res = quadop_cst_string("erreur_out_of_range");
+    // struct quad q_verif_index2 = quad_iflt($3.res, quadop_cst_string("0"));
+    // q_verif_index2.res = quadop_cst_string("erreur_out_of_range");
+    // gencode(q_verif_index);
+    // gencode(q_verif_index2);
 
     gencode( quad_set_tab( quadop_ident(ident->name), $3.res, $6.res) );
+    global_code[nextquad-1].data.taille = ident->taille;
 
     $$.next = NULL;
 }
@@ -438,7 +439,7 @@ les goto qui pointent vers le quad juste après eux
     struct quadop ident_tab = quadop_ident(e_tab->name);
     char num[32];
     snprintf(num,32,"%i",nb_op);
-    gencode(quad_declare_tab(ident_tab, quadop_cst_string(num)));
+    gencode(quad_declare_tab(ident_tab, quadop_cst(nb_op)));
     struct entry * tmp = NULL;
     struct quadop id_tmp;
     struct qo_list * next = $5.qo_list;
@@ -456,15 +457,20 @@ les goto qui pointent vers le quad juste après eux
             }
             // on charge la valeur du tableau dans un tmp
             struct quadop id_tab = quadop_ident(next->val.tab.ident);
-            struct quadop idx_tab = quadop_cst(next->val.tab.idx);
+            snprintf(num,32,"%i", next->val.tab.idx);
+            struct quadop idx_tab = quadop_cst_string(num);
             gencode(quad_get_tab(id_tmp, id_tab, idx_tab));
+            struct entry * e_tmp_tab = lookup(ctx_stack, id_tab.ident);
+            global_code[nextquad-1].data.taille = e_tmp_tab->taille;
             // et on enregistre ce tmp dans notre tableau temporaire
             gencode(quad_set_tab(ident_tab, quadop_cst_string(num), id_tmp));
+            global_code[nextquad-1].data.taille = e_tab->taille;
         }
         else { // si c'est un quadop normal
         // remarque : s'il n'y a aucun QO_TAB_ELEM, alors aucune variable tmp
         // n'est générée
             gencode(quad_set_tab(ident_tab, quadop_cst_string(num), next->val));
+            global_code[nextquad-1].data.taille = e_tab->taille;
         }
         next = next->next;
     }
@@ -489,19 +495,25 @@ les goto qui pointent vers le quad juste après eux
     $<instr_type>$.next = list_creer(nextquad);
     gencode(quad_goto_unknown());
     gencode(quad_get_tab(ident, ident_tab, ident_compteur));
+    struct entry * e_tmp_tab = lookup(ctx_stack, ident_tab.ident);
+    global_code[nextquad-1].data.taille = e_tmp_tab->taille;
     gencode(quad_add(ident_compteur, ident_compteur, quadop_cst_string("1")));
 
     } liste_instructions G KW_DONE {
     complete_single($11, $8+2); // +2 pour sauter l'initialisation du compteur de boucle
     // struct entry * e_ident = lookup(ctx_stack,$2);
     // struct quadop ident = quadop_ident($2);
-    $$.next = list_concat($<instr_type>9.next, $10.next);
+    // $$.next = list_concat($<instr_type>9.next, $10.next);
+    $$.next = $10.next;
+    complete($<instr_type>9.next, $11+1);
+    list_free($<instr_type>9.next);
     qo_list_free($5.qo_list);
 }
 | KW_ECHO liste_operandes {
     struct entry * tmp = NULL;
     struct quadop id_tmp;
     struct qo_list * next = $2.qo_list;
+    char num[32];
     while(next != NULL) {
         if(next->val.kind == QO_TAB_ELEM) { // si c'est un accès tableau,
             if(tmp == NULL) { // pour éviter de systématiquement créer un tmp
@@ -515,8 +527,11 @@ les goto qui pointent vers le quad juste après eux
             // puis on affiche ce tmp
             // c'est plus simple que de toute faire d'un coup
             struct quadop id_tab = quadop_ident(next->val.tab.ident);
-            struct quadop idx_tab = quadop_cst(next->val.tab.idx);
+            snprintf(num,32,"%i", next->val.tab.idx);
+            struct quadop idx_tab = quadop_cst_string(num);
             gencode(quad_get_tab(id_tmp, id_tab, idx_tab));
+            struct entry * e_tmp_tab = lookup(ctx_stack, id_tab.ident);
+            global_code[nextquad-1].data.taille = e_tmp_tab->taille;
             gencode ( quad_echo(id_tmp) );
         }
         else { // si c'est un quadop normal, on l'echo simplement
@@ -848,17 +863,9 @@ operande
     newname(liste_symbole, tmp);
     struct quadop id_tmp = quadop_ident(tmp->name);
 
-    char tmp_taille[32];
-    snprintf(tmp_taille, 32, "%i", e->taille);
-    struct quad q_verif_index = quad_ifge($5.res, quadop_cst_string(tmp_taille));
-    q_verif_index.res = quadop_cst_string("erreur_out_of_range");
-    struct quad q_verif_index2 = quad_iflt($5.res, quadop_cst_string("0"));
-    q_verif_index2.res = quadop_cst_string("erreur_out_of_range");
-    gencode(q_verif_index);
-    gencode(q_verif_index2);
-
     gencode(quad_declare(id_tmp));
     gencode(quad_get_tab(id_tmp, quadop_ident(e->name), $5.res));
+    global_code[nextquad-1].data.taille = e->taille;
 
     $$.res = id_tmp;
 }
@@ -971,8 +978,30 @@ operande_entier
         gencode(quad_inv_signe(ident_inv, ident));
         $$.res = ident_inv;
     }
-}
-| opt_plus_ou_moins ACCES_ELEM_TABLEAU {}
+} 
+| opt_plus_ou_moins DOLLAR O_CURLY_BRACKET IDENTIFIER O_BRACKET operande_entier C_BRACKET C_CURLY_BRACKET {
+    struct entry * e = lookup(ctx_stack, $4);
+    if( e == NULL ) {
+        fatal("Accès à un tableau non défini : '%s'\n", $4);
+    }
+    if( e->type != E_TAB ) {
+        fatal("Cette variable n'est pas un tableau : '%s'\n", $4);
+    }
+    // struct quadop tab_elem = quadop_tab_elem()
+    struct entry * tmp = new_temp(NULL);
+    newname(ctx_stack,tmp);
+    newname(liste_symbole, tmp);
+    struct quadop id_tmp = quadop_ident(tmp->name);
+
+    gencode(quad_declare(id_tmp));
+    gencode(quad_get_tab(id_tmp, quadop_ident(e->name), $6.res));
+    global_code[nextquad-1].data.taille = e->taille;
+    
+    if($1 == op_sub) { // rien, ou un '+'
+        gencode(quad_inv_signe(id_tmp, id_tmp)); 
+    }
+    $$.res = id_tmp;
+} 
 | opt_plus_ou_moins ACCES_ARG {}
 | opt_plus_ou_moins MOT { 
     if( is_numeric($2) == 0 ) {
@@ -1018,7 +1047,7 @@ decl_loc
     e->offset_sp = e->nb_decl_loc++;
     struct quadop ident = quadop_ident(e->name);
     newname(ctx_stack, e);
-    // newname(liste_symbole, e);
+    newname(liste_symbole, e);
     gencode(quad_set(ident, $5.res));
     
     $$ = 1 + $1;

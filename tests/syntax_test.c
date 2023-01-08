@@ -12,6 +12,9 @@
 #define NB_TESTS 16
 #define MAX_BUFFER_SIZE 1024
 
+extern int nextquad;
+extern struct ctx_stack * liste_symbole;
+
 int syntax_test() {
   char *filenames[NB_TESTS] = {
     "./tests/in/test_arithm_cond.sh",
@@ -49,6 +52,8 @@ int syntax_test() {
 
     // Utiliser l'analyseur syntaxique pour analyser la chaîne
     int result = yyparse();
+    // free_ctx_stack(liste_symbole,1);
+    nextquad=0;
     yyrestart(yyin);
 
     // Check the result of the parse
@@ -61,6 +66,7 @@ int syntax_test() {
 
   }
   fclose(yyin);
-
+  // free_ctx_stack(liste_symbole,1);
+  // yylex_destroy();
   return passed;
 }

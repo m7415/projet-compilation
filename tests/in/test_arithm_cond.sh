@@ -4,25 +4,33 @@ a = 15;
 # pour montrer que c'est à l'exec qu'on a un pbme
 b = "abc"; 
 
-if test ${a} -lt ${b} then
-    echo "erreur d'exécution (crash)\n";
-    echo "à commenter pour voir la suite\n"
-fi;
+# if test ${a} -lt ${b} then
+#     echo "erreur d'exécution (crash)\n";
+#     echo "à commenter pour voir la suite\n"
+# fi;
 
-if test 14 -eq '12' then
-    echo "eq"
-elif test "14" -ne "12" then
-    echo "ne"
-elif test "14" -gt '12' then
-    echo "gt"
-elif test '14' -ge 12 then
-    echo "ge"
-elif test 14 -lt 12 then
-    echo "lt"
-elif test 14 -le 12 then
-    echo "le"
-else
-    echo "non"
+
+a = "-14";
+b = 14;
+
+echo ${a} "et" ${b} " : ";
+if test ${a} -eq ${b} then
+    echo "eq "
+fi;
+if test ${a} -ne ${b} then
+    echo "ne "
+fi;
+if test ${a} -gt ${b} then
+    echo "gt "
+fi;
+if test ${a} -ge ${b} then
+    echo "ge "
+fi;
+if test ${a} -lt ${b} then
+    echo "lt "
+fi;
+if test ${a} -le ${b} then
+    echo "le "
 fi;
 
 echo "\n----------------\n";
