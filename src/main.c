@@ -101,7 +101,7 @@ int main(int argc, char* argv[]){
         printf("nbre total de quads : %i\n",nextquad);
         for(int i=0; i<nextquad; i++) {
             fprintf(output_quad, "%-3i: ", i);
-            print_quad(global_code[i], output);
+            print_quad(global_code[i], output_quad);
         }
     }
     
