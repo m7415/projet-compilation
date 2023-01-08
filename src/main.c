@@ -23,6 +23,7 @@ int main(int argc, char* argv[]){
     int option;
 
     int print_tos = 1;
+    int print_q = 1;
 
     FILE * output = stdout;
 
@@ -33,10 +34,10 @@ int main(int argc, char* argv[]){
     };
 
     // Traitement des options en utilisant getopt
-    while((option = getopt_long(argc, argv, "hvo:t",long_options,NULL)) != -1) {
+    while((option = getopt_long(argc, argv, "hvo:tq",long_options,NULL)) != -1) {
         switch(option) {
         case 'h':
-            printf("Usage : %s [-h] [-o fichier_sortie] fichier_entree\n", argv[0]);
+            printf("Usage : %s [-h] [-v --version] [-o fichier_sortie] [-t --tos] [-q] fichier_entree\n", argv[0]);
             break;
         case 'v':
             printf("Simon PERNAS\n"
@@ -49,6 +50,9 @@ int main(int argc, char* argv[]){
             break;
         case 't':
             print_tos = 0;
+            break;
+        case 'q':
+            print_q = 0;
             break;
         default:
             fprintf(stderr, "Option inconnue ou argument manquant : '%c'\n", optopt);
@@ -86,6 +90,15 @@ int main(int argc, char* argv[]){
     {
         printf("Table des symboles :\n");
         print_ctx_stack(liste_symbole);
+    }
+
+    if (print_q == 0)
+    {
+        printf("nbre total de quads : %i\n",nextquad);
+        for(int i=0; i<nextquad; i++) {
+            fprintf(output, "%-3i: ", i);
+            print_quad(global_code[i], output);
+        }
     }
     
 
