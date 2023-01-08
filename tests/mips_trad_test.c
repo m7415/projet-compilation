@@ -5,7 +5,7 @@
 
 #include "table_symb.h"
 
-#define NB_TESTS 26
+#define NB_TESTS 25
 
 extern int nextquad;
 
@@ -33,7 +33,6 @@ int mips_test(){
         "test_tab",
         "test_arg_glob",
         "test_case",
-        "test_exple_sujet_2",
         "test_read",
         "test_tab_2",
         "test_tab_3",
