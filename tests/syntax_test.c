@@ -8,7 +8,7 @@
 #include "table_symb.h"
 
 
-#define NB_TESTS 22
+#define NB_TESTS 26
 #define MAX_BUFFER_SIZE 1024
 
 extern int nextquad;
@@ -37,7 +37,11 @@ int syntax_test() {
     "./tests/in/test_exple_sujet_2.sh",
     "./tests/in/test_read.sh",
     "./tests/in/test_tab_2.sh",
-    "./tests/in/test_tab_3.sh"
+    "./tests/in/test_tab_3.sh",
+    "./tests/in/test_exple_sujet1_original.sh",
+    "./tests/in/test_exple_sujet1_modif.sh",
+    "./tests/in/test_exple_sujet2_original.sh",
+    "./tests/in/test_exple_sujet2_modif.sh"
   };
 
   int passed = 0;

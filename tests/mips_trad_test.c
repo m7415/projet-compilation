@@ -5,7 +5,7 @@
 
 #include "table_symb.h"
 
-#define NB_TESTS 22
+#define NB_TESTS 26
 
 extern int nextquad;
 
@@ -36,7 +36,11 @@ int mips_test(){
         "test_exple_sujet_2",
         "test_read",
         "test_tab_2",
-        "test_tab_3"
+        "test_tab_3",
+        "test_exple_sujet1_original",
+        "test_exple_sujet1_modif",
+        "test_exple_sujet2_original",
+        "test_exple_sujet2_modif"
     };
 
     char namefile[MAX_BUFFER_SIZE];
