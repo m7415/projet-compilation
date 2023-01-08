@@ -1,13 +1,14 @@
 %{
 #include <stdio.h>
 #include <string.h>
-// #include "sos.h"
 #include "quads.h"
 #include "compil.tab.h"
 %}
 
 %option nounput
 %option noyywrap
+
+%option yylineno
 
 IDENT [a-zA-Z_][a-zA-Z0-9_]*
 
@@ -42,13 +43,11 @@ expr    { return KW_EXPR    ;}
 
 \"([^\"\\]|\\.)*\" {
     // string entre ""
-    // printf("string double quote (%s)\n", yytext);
     strncpy(yylval.str, yytext, MAX_STRING_SIZE);
     return STRING_DOUBLE_QUOTE;
 }
 \'([^\'\\]|\\.)*\' {
-    // string entre '' (je vois pas comment gérer les " et ' en meme temps)
-    // printf("string single quote (%s)\n", yytext);
+    // string entre ''
     strncpy(yylval.str, yytext, MAX_STRING_SIZE);
     return STRING_SINGLE_QUOTE;
 }
@@ -81,7 +80,6 @@ expr    { return KW_EXPR    ;}
 "("   { return O_PAR ;}
 ")"   { return C_PAR ;}
 "$"   { return DOLLAR ;}
-"?"   { return QUESTION_MARK ;}
 ";"   { return SEMICOLON ;}
 "="   { return EQUAL ;}
 "!="  { return NOT_EQUAL      ;}
@@ -98,7 +96,6 @@ expr    { return KW_EXPR    ;}
 "-o"  { return LOGIC_OR     ;}
 
 {IDENT} {
-    // printf("identifier : (%s)\n", yytext);
     strncpy(yylval.str, yytext, MAX_STRING_SIZE);
     return IDENTIFIER;
 }
@@ -107,29 +104,25 @@ expr    { return KW_EXPR    ;}
     // cette règle inclus les IDENTIFIER, c'est pourquoi on la met en dessous
     // cette règle inclu aussi les entiers 
     // (d'où l'absence d'un symbole terminal "entier" dans la grammaire)
-    // printf("Mot : (%s)\n", yytext);
     strncpy(yylval.str, yytext, MAX_STRING_SIZE);
     return MOT;
 }
 
 \$\{{IDENT}\} {
-    // printf("accès variable : ( %s )\n", yytext);
-    strncpy(yylval.str, yytext+2, MAX_STRING_SIZE);
+    strncpy(yylval.str, yytext+2, MAX_STRING_SIZE); // +2 pour '${'
     yylval.str[ strlen(yylval.str) -1 ] = '\0'; // supprimer le '}'
     // de sorte que yylval.str contienne l'identificateur
     return ACCES_VARIABLE;
 }
 
 \$\{{IDENT}\[\*\]\} {
-    // printf("accès tout les elems d'un tableau : (%s)\n", yytext);
-    strncpy(yylval.str, yytext+2, MAX_STRING_SIZE);
+    strncpy(yylval.str, yytext+2, MAX_STRING_SIZE); // +2 pour '${'
     yylval.str[ strlen(yylval.str) -4 ] = '\0'; // supprimer le '[*]}'
     return ACCES_LISTE_TABLEAU;
 }
 
 
 \$[0-9]+ {
-    // printf("accès argument : ( %s )\n", yytext);
     yylval.intval = atoi(yytext+1)-1;
     return ACCES_ARG;
 }

@@ -1,7 +1,6 @@
 %{
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 #include <stdnoreturn.h> // pour fatal
 #include <stdarg.h> // pour fatal
 #include "table_symb.h"
@@ -31,6 +30,7 @@
 #endif
 
 extern int yylex();
+extern int yylineno; // pour afficher la ligne d'une erreur
 extern void yyerror(const char * msg);
 void gencode(struct quad q); // ajouter le quad à notre code
 void complete(struct list * l, size_t addr); // compléter les goto inconnus
@@ -44,7 +44,7 @@ void fatal(const char * msg, ...); // affiche un msg d'erreur formaté (comme pr
 
 
 int nextquad = 0; // compteur global de quads
-struct quad global_code[1<<16]; // euh ça fait beaucoup là non ?
+struct quad global_code[1<<16]; // valeur arbitrairement grande, pour éviter de devoir realloc...
 int nb_temp = 0; // le nombre d'identifieurs temporaires créés (pour assurer l'unicité de ceux-ci)
 
 struct ctx_stack * ctx_stack; // le stack de table de symboles
@@ -95,7 +95,15 @@ void complete_single(int quad_num, size_t addr) {
     }
     if(global_code[quad_num].kind != Q_GOTO_UNKNOWN
     && global_code[quad_num].kind != Q_IFEQ
-    && global_code[quad_num].kind != Q_IFDIFF) {
+    && global_code[quad_num].kind != Q_IFDIFF
+    && global_code[quad_num].kind != Q_IFGT
+    && global_code[quad_num].kind != Q_IFGE
+    && global_code[quad_num].kind != Q_IFLT
+    && global_code[quad_num].kind != Q_IFLE
+    && global_code[quad_num].kind != Q_IFEQ_STR
+    && global_code[quad_num].kind != Q_IFDIFF_STR
+    && global_code[quad_num].kind != Q_IFNULL_STR
+    && global_code[quad_num].kind != Q_IFNOTNULL_STR) {
         fprintf(stderr, "ERREUR : complete un quad qui n'est pas unknown ?-?\n");
     }
     else {
@@ -109,9 +117,7 @@ void complete_single(int quad_num, size_t addr) {
 }
 
 struct entry * new_temp(char * name_) {
-    // printf("call new_temp mais c'est pas encore fait, ça c'est padbol\n");
     char name[MAX_IDENT_SIZE]; // 32 chars, incluant le \0
-    // int rand_nb = rand(); // nombre au hasard
     if(name_ == NULL) {
         snprintf(name, MAX_IDENT_SIZE, ".tmp_%d", nb_temp++);
     } else {
@@ -187,19 +193,18 @@ noreturn void fatal(const char *msg, ...)
         int debut_instr;
         int debut_cond;
         struct list * next;
-    } else_part_type;
+    } else_part_type; // utilisé pour gérer les goto dans les else
 
     struct {
-        // struct quadop res[32];
         struct qo_list * qo_list;
         int nb_elem;
     } liste_expr;
 
     struct {
         struct list * next;
-        int isempty; // uniquement pour les st, vaut 1 is st est %empty
     } instr_type;
 
+    // aurait été utilisé pour case, mais on a pas réussi
     struct {
         // 2 listes en correspondances
         // si ident == qo_list[i] goto list[i] 
@@ -214,16 +219,13 @@ noreturn void fatal(const char *msg, ...)
 %token KW_ESAC KW_ECHO KW_READ KW_RETURN KW_EXIT KW_LOCAL KW_ELIF KW_ELSE
 %token KW_FI KW_DECLARE KW_TEST KW_EXPR
 %token<str> STRING_DOUBLE_QUOTE STRING_SINGLE_QUOTE MOT IDENTIFIER ACCES_LISTE_TABLEAU
-%token<intval> NUMBER
 %token EQUAL NOT_EQUAL
 %token OP_NOT_NULL OP_NULL OP_EQ OP_NEQ OP_GT OP_GE OP_LT OP_LE
 %token LOGIC_NOT LOGIC_AND LOGIC_OR
 %token<op_arithm> PLUS_OU_MOINS FOIS_DIV_MOD
 %token O_PAR C_PAR O_BRACKET C_BRACKET O_CURLY_BRACKET C_CURLY_BRACKET SEMICOLON PIPE
 %token DOLLAR
-%token QUESTION_MARK
 %token<str> ACCES_VARIABLE
-%token ACCES_ELEM_TABLEAU
 %token<intval> ACCES_ARG
 %token ACCES_LISTE_ARG
 %token<intval> LAST_FUNC_STATUS
@@ -245,30 +247,13 @@ noreturn void fatal(const char *msg, ...)
 
 %start programme
 
+%locations
+
 %%
 
 programme : {
-    // srand(time(NULL)); // pour le générateur de nombre aléatoire, utilisé dans newtemp()
-    srand(0); // (aléatoire fixe pour les tests)
-
     ctx_stack = create_ctx_stack();
     liste_symbole = create_ctx_stack();
-
-    // struct entry * e = create_entry(SYMB_OPERATEUR_2_GAUCHE, E_STR); 
-    // newname(ctx_stack, e);
-    // newname(liste_symbole, e);
-    // gencode(quad_declare(quadop_ident(e->name)));
-    // e = create_entry(SYMB_OPERATEUR_2_DROITE, E_STR); 
-    // newname(ctx_stack, e);
-    // newname(liste_symbole, e);
-    // gencode(quad_declare(quadop_ident(e->name)));
-
-    // struct entry * e = create_entry(SYMB_LAST_FUNC_RETURN, E_STR);
-    // newname(ctx_stack, e);
-    // newname(liste_symbole, e);
-    // gencode(quad_declare(quadop_ident(e->name)));
-    // gencode(quad_set(quadop_ident(e->name),quadop_cst_string("0")));
-
     } liste_instructions {
     free_ctx_stack(ctx_stack, 0);
 }
@@ -277,18 +262,11 @@ programme : {
 
 liste_instructions
 : liste_instructions SEMICOLON M instruction {
-    // printf("$1.next : ");
-    // list_print($1.next);
-    // printf("\n$4.next : ");
-    // list_print($4.next);
-    // printf("\n$3 : %i\n", $3);
-
     complete($1.next, $3);
     list_free($1.next);
     $$.next = $4.next;
 }
 | instruction {
-    // printf("aaaa 3\n");
     $$.next = $1.next;
 }
 ;
@@ -332,7 +310,6 @@ instruction
     }
     struct entry * id = create_entry($2, E_TAB);
     id->taille = atoi($4);
-    // DEBUG printf("création d'un nouveau tableau : %s[%i]\n", id->name, id->taille);
     newname_global(ctx_stack, id);
     newname_global(liste_symbole, id); // pas forcement besoin de "global" ici
     struct quadop ident = quadop_ident(id->name);
@@ -349,15 +326,6 @@ instruction
         fatal("Cette variable n'est pas un tableau : '%s'\n", $1);
     }
 
-    // char tmp[32];
-    // snprintf(tmp, 32, "%i", ident->taille);
-    // struct quad q_verif_index = quad_ifge($3.res, quadop_cst_string(tmp));
-    // q_verif_index.res = quadop_cst_string("erreur_out_of_range");
-    // struct quad q_verif_index2 = quad_iflt($3.res, quadop_cst_string("0"));
-    // q_verif_index2.res = quadop_cst_string("erreur_out_of_range");
-    // gencode(q_verif_index);
-    // gencode(q_verif_index2);
-
     gencode( quad_set_tab( quadop_ident(ident->name), $3.res, $6.res) );
     global_code[nextquad-1].data.taille = ident->taille;
 
@@ -366,7 +334,6 @@ instruction
 | KW_IF test_bloc KW_THEN M liste_instructions else_part KW_FI {
     complete($2.true, $4);
     list_free($2.true);
-    // struct list * next = $2.false;
     $$.next = NULL;
     if($6.type == else_elif) {
         complete($2.false, $6.debut_cond);
@@ -381,14 +348,6 @@ instruction
     }
     $$.next = list_concat($$.next, $5.next);
     $$.next = list_concat($$.next, $6.next);
-
-    ////// struct list * tmp = list_creer($x);
-    ////// // printf("(if) créé liste avec %i\n", $x);
-    ////// $$.next = list_concat($$.next, tmp);
-
-    // printf("else_part.next : ");
-    // list_print($6.next);
-    // printf("\n");
 
     DEBUG printf("if.next : ");
     DEBUG list_print($$.next);
@@ -509,17 +468,13 @@ les goto qui pointent vers le quad juste après eux
 
     } liste_instructions G KW_DONE {
     complete_single($11, $8+2); // +2 pour sauter l'initialisation du compteur de boucle
-    // struct entry * e_ident = lookup(ctx_stack,$2);
-    // struct quadop ident = quadop_ident($2);
-    // $$.next = list_concat($<instr_type>9.next, $10.next);
-    $$.next = $10.next;
+    complete($10.next, $8+2); // on force à revenir au début du for (pour vérifier si on doit en sortir)
+    list_free($10.next);
+    $$.next = NULL;
+
     complete($<instr_type>9.next, $11+1);
     list_free($<instr_type>9.next);
     qo_list_free($5.qo_list);
-}
-| KW_CASE operande KW_IN G liste_cas M KW_ESAC {
-
-    $$.next = NULL;
 }
 | KW_ECHO liste_operandes {
     struct entry * tmp = NULL;
@@ -592,6 +547,13 @@ les goto qui pointent vers le quad juste après eux
     gencode(q);
     $$.next = NULL;
 }
+| KW_EXIT operande_entier { $$.next = NULL; }
+| KW_RETURN { $$.next = NULL; }
+| KW_RETURN operande_entier { $$.next = NULL; }
+| appel_de_fonction { $$.next = NULL; }
+| KW_CASE operande KW_IN liste_cas KW_ESAC {
+    $$.next = NULL;
+}
 ;
 
 
@@ -617,18 +579,8 @@ else_part
     }
     $$.next = list_concat($$.next, $7.next);
     $$.next = list_concat($$.next, $8.next);
-
-    /////// // printf("truc à faire avec %i\n", $x);
-    /////// struct list * tmp = list_creer($x);
-    /////// // printf("(elsepart) créé liste avec %i\n", $x);
-    /////// $$.next = list_concat($$.next, tmp);
-
     struct list * tmp2 = list_creer($1);
     $$.next = list_concat($$.next, tmp2);
-
-    // printf("inside_else_part.next : ");
-    // list_print($$.next); // WTF (ça a l'air de s'etre calmé mtn...)
-    // printf("\n");
 }
 | G KW_ELSE M liste_instructions {
     $$.type = else_else;
@@ -648,6 +600,7 @@ G: %empty {
     gencode(quad_goto_unknown());
 }
 
+/* laissé vide, car case n'est pas implémenté */
 liste_cas
 : liste_cas filtre C_PAR liste_instructions SEMICOLON SEMICOLON {
 
@@ -655,7 +608,6 @@ liste_cas
 | filtre C_PAR liste_instructions SEMICOLON SEMICOLON {
 
 }
-
 filtre
 : MOT
 | IDENTIFIER
@@ -698,9 +650,6 @@ test_expr
     complete($1.false, $3);
     list_free($1.false);
     $$.true = list_concat($1.true, $4.true);
-    /*
-Un goto inutile ici (qui pointe vers l'instruction suivante)
-    */
     $$.false = $4.false;
 }
 | test_expr2 {
@@ -740,10 +689,8 @@ test_expr3
 | test_instruction  {
     $$.true = NULL;
     $$.true = list_concat($$.true, $1.true);
-    // list_free($1.true);
     $$.false = NULL;
     $$.false = list_concat($$.false, $1.false);
-    // list_free($1.false);
 }
 | LOGIC_NOT test_instruction {
     $$.true = $2.false;
@@ -851,7 +798,6 @@ test_instruction
         $$.false = list_creer(nextquad);
         struct quad q2 = quad_goto_unknown(nextquad);
         gencode(q2);
-
     } else if ( $2 == less_equal ) {
         $$.true = list_creer(nextquad);
         struct quad q = quad_ifle($1.res, $3.res);
@@ -891,7 +837,6 @@ liste_operandes
         qo_list_append($$.qo_list, quadop_tab_elem($1, i));
     }
     $$.nb_elem = tab->taille;
-    // DEBUG qo_list_print($$.qo_list);
 }
 ;
 
@@ -913,7 +858,6 @@ operande
     if( e->type != E_TAB ) {
         fatal("Cette variable n'est pas un tableau : '%s'\n", $3);
     }
-    // struct quadop tab_elem = quadop_tab_elem()
     struct entry * tmp = new_temp(NULL);
     newname(ctx_stack,tmp);
     newname(liste_symbole, tmp);
@@ -929,10 +873,7 @@ operande
     $$.res = quadop_cst_string($1);
 }
 | IDENTIFIER { // copie de la règle acceptant MOT
-    // printf("aloalo ");
     $$.res = quadop_cst_string($1);
-    // print_quadop($$.res);
-    // printf("\n");
 }
 | ACCES_ARG {
     DEBUG printf("acces arg %i\n", $1);
@@ -959,7 +900,9 @@ operande
 | DOLLAR O_PAR KW_EXPR somme_entier C_PAR {
     $$.res = $4.res;
 }
-/* il manque les $( expr ... ) et $( function call ) */
+| DOLLAR O_PAR appel_de_fonction C_PAR {
+    $$.res = quadop_cst_string("fonction pas implémenté");
+}
 ;
 
 operateur1
@@ -1056,7 +999,6 @@ operande_entier
     if( e->type != E_TAB ) {
         fatal("Cette variable n'est pas un tableau : '%s'\n", $4);
     }
-    // struct quadop tab_elem = quadop_tab_elem()
     struct entry * tmp = new_temp(NULL);
     newname(ctx_stack,tmp);
     newname(liste_symbole, tmp);
@@ -1072,7 +1014,6 @@ operande_entier
     $$.res = id_tmp;
 } 
 | opt_plus_ou_moins ACCES_ARG {
-    //DEBUG printf("acces arg %i\n", $2);
     struct entry * e = new_temp(NULL);
     struct quadop ident = quadop_ident(e->name);
     newname(ctx_stack, e);
@@ -1114,33 +1055,39 @@ opt_plus_ou_moins
 
 declaration_de_fonction
 : IDENTIFIER O_PAR C_PAR O_CURLY_BRACKET {
-    pushctx(ctx_stack);
+    // pushctx(ctx_stack);
 } decl_loc liste_instructions C_CURLY_BRACKET {
-
-    DEBUG print_ctx_stack(ctx_stack);
-    popctx(ctx_stack,0);
+    // DEBUG print_ctx_stack(ctx_stack);
+    // popctx(ctx_stack,0);
 }
 ;
 
 decl_loc
 : decl_loc KW_LOCAL IDENTIFIER EQUAL concatenation SEMICOLON {
-    struct entry * e = create_entry($3, E_LOC);
-    e->offset_sp = e->nb_decl_loc++;
-    struct quadop ident = quadop_ident(e->name);
-    newname(ctx_stack, e);
-    newname(liste_symbole, e);
-    gencode(quad_set(ident, $5.res));
+    // struct entry * e = create_entry($3, E_LOC);
+    // e->offset_sp = e->nb_decl_loc++;
+    // struct quadop ident = quadop_ident(e->name);
+    // newname(ctx_stack, e);
+    // newname(liste_symbole, e);
+    // gencode(quad_set(ident, $5.res));
     
-    $$ = 1 + $1;
+    // $$ = 1 + $1;
 }
 | %empty {
     $$ = 0;
 }
 ;
 
+/*
+vide pour éviter les erreurs de syntaxes
+*/
+appel_de_fonction
+: IDENTIFIER liste_operandes {}
+| IDENTIFIER {}
+
 
 %%
 
 void yyerror(const char * msg) {
-    fprintf(stderr, "%s\n", msg);
+    fprintf(stderr, "Erreur à la ligne %d : %s\n", yylineno, msg);
 }
