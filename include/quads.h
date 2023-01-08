@@ -69,7 +69,9 @@ enum quad_kind {
     Q_DECLARE_TAB, // declare op1[op2] (op1 est un QO_IDENT, op2 est un mot ne contenant que des chiffres)
     Q_CONCAT, // (ident)res <- concat(op1, op2)
     Q_READ, // (ident)res <- <read>
-    Q_READ_TAB // (tab)res[op1] <- <read>
+    Q_READ_TAB, // (tab)res[op1] <- <read>
+    Q_ARG_GLOB, // (ident)res <- arg n°op1
+    Q_CONCAT_ARG_GLOB // (ident)res <- concat args
 };
 
 struct quad {
@@ -125,5 +127,7 @@ struct quad quad_declare_tab(struct quadop ident, struct quadop taille);
 struct quad quad_concat(struct quadop ident, struct quadop op1, struct quadop op2);
 struct quad quad_read(struct quadop ident);
 struct quad quad_read_tab(struct quadop ident, struct quadop idx);
+struct quad quad_arg_glob(struct quadop ident, struct quadop num);
+struct quad quad_concat_arg_glob(struct quadop ident);
 
 #endif

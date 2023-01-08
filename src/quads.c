@@ -215,6 +215,16 @@ void print_quad(struct quad q, FILE * file_) {
         print_quadop(q.op1, file);
         fprintf(file, "]");
     }
+    else if(q.kind == Q_ARG_GLOB) {
+        fprintf(file, "ARG n°");
+        print_quadop(q.op1,file);
+        fprintf(file," -> ");
+        print_quadop(q.res, file);
+    }
+    else if(q.kind == Q_CONCAT_ARG_GLOB) {
+        fprintf(file, "CONCAT ARGS -> ");
+        print_quadop(q.res,file);
+    }
     else {
         fprintf(file, "UNRECOGNIZED QUAD");
     }
@@ -563,4 +573,18 @@ struct quad quad_read_tab(struct quadop ident, struct quadop idx) {
     return q;
 }
 
+struct quad quad_arg_glob(struct quadop ident, struct quadop num) {
+    struct quad q;
+    q.kind = Q_ARG_GLOB;
+    q.res = ident;
+    q.op1 = num;
+    return q;
+}
+
+struct quad quad_concat_arg_glob(struct quadop ident) {
+    struct quad q;
+    q.kind = Q_CONCAT_ARG_GLOB;
+    q.res = ident;
+    return q;
+}
 

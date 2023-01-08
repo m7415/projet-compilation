@@ -228,7 +228,7 @@ int handle_quad(struct file_asm * f, struct quad q, int i) {
                             "   # read -> %s\n"
                             "   li $v0, 8\n"
                             "   la $a0, .buffer_read # @ buf\n"
-                            "   la $a1, %i # buf size\n"
+                            "   li $a1, %i # buf size\n"
                             "   syscall # read_str\n"
                             "   la $a0, .buffer_read\n"
                             "   jal strlen\n"
@@ -368,6 +368,34 @@ int handle_quad(struct file_asm * f, struct quad q, int i) {
                              temp3);
             free(temp1);
             free(temp2);
+            free(temp3);
+            break;
+        case Q_ARG_GLOB:
+            temp1 = handle_quadop(f, q.op1);
+            temp3 = handle_quadop(f, q.res);
+            int num = q.op1.cst;
+            ecrit = fprintf(f->sortie,
+                            "   # %s <- .argv[%i]\n"
+                            "   li $s0, %i # chargement de l'idx\n"
+                            "   la $a0, .empty_string\n"
+                            "   move $a1, $s0 # en cas d'erreur\n"
+                            "   blt $s0, 0, erreur_out_of_range\n"
+                            "   lw $t0, .argc\n"
+                            "   bge $s0, $t0, erreur_out_of_range\n"
+                            "   mul $s0, $s0, 4 # pour l'addresse dans le tableau\n"
+                            "   la $t0, .argv\n"
+                            "   add $t0, $t0, $s0\n"
+                            "   lw $a1, ($t0)\n"
+                            "   la $a0, %s\n"
+                            "   la $a2, .empty_string\n"
+                            "   jal concat\n"
+                            "   # ----\n"
+                            "",
+                            temp3,num,
+                            num,
+                            temp3
+                            );
+            free(temp1);
             free(temp3);
             break;
         case Q_CONCAT:
@@ -667,14 +695,109 @@ int trad_mips(FILE * sortie,struct quad* quad_table, int nextquad /*+ table des 
     fprintf(sortie, ".data\n");
     fprintf(sortie, "   .empty_string: .asciiz \"\"\n");
     fprintf(sortie, "   .single_space: .asciiz \" \"\n");
+    fprintf(sortie, "   .line_feed: .asciiz \"\\n\"\n");
     fprintf(sortie, "   .buffer_read: .space %i\n", DEFAULT_VAR_SIZE);
     fprintf(sortie, "   .align 2\n");
-    fprintf(sortie, "   %s: .word\n", SYMB_LAST_FUNC_RETURN);
+    fprintf(sortie, "   %s: .word 0\n", SYMB_LAST_FUNC_RETURN);
+    fprintf(sortie, "   %s: .word 0\n", SYMB_ARGC);
+    fprintf(sortie, "   %s: .space 1024 # 4*256 args maximum\n", SYMB_ARGV);
+    fprintf(sortie, "   .arg_concat: .space 1024 # concat de tout les args\n");
 
     f.pos_data = ftell(sortie);
 
     fprintf(sortie, "\n.text\n");
     fprintf(sortie, ".globl main\n\nmain:\n");
+    fprintf(sortie, 
+            "# chargement argc et argv\n"
+            ""
+            "   move $s0, $a0\n"
+            "   la $t0, .argc\n"
+            "   sw $s0, ($t0) #.argc contient mtn le nmbre d'arg\n"
+            "   move $s1, $a1 #$s1 contient l'adresse des arguments\n"
+            "   la $t2, .argv #adresse dans .argv\n"
+            "   li $t3, 0 # compteur de boucle\n"
+            "   la $t4, .argc\n"
+            "   lw $t4, ($t4) # arret de boucle\n"
+
+            "   sub $sp, $sp, 20\n"
+            "   sw $t0, 0($sp)\n"
+            "   sw $t1, 4($sp)\n"
+            "   sw $t2, 8($sp)\n"
+            "   sw $t3, 12($sp)\n"
+            "   sw $t4, 16($sp)\n"
+            "   la $a0, .arg_concat\n"
+            "   la $a1, .empty_string\n"
+            "   la $a2, .empty_string\n"
+            "   jal concat\n"
+            "   lw $t0, 0($sp)\n"
+            "   lw $t1, 4($sp)\n"
+            "   lw $t2, 8($sp)\n"
+            "   lw $t3, 12($sp)\n"
+            "   lw $t4, 16($sp)\n"
+            "   addi $sp, $sp, 20\n"
+
+            "loop_print_arg:\n"
+            "   beq $t3, $t4, loop_print_arg_end\n"
+            "   lw $t0, ($s1) # chargement d'un argument\n"
+            "   sw $t0, ($t2) # stockage dans .argv\n"
+            "   addi $s1, $s1, 4 # avancer dans les arguments\n"
+            ""
+            "   sub $sp, $sp, 20\n"
+            "   sw $t0, 0($sp)\n"
+            "   sw $t1, 4($sp)\n"
+            "   sw $t2, 8($sp)\n"
+            "   sw $t3, 12($sp)\n"
+            "   sw $t4, 16($sp)\n"
+            "   la $a0, .arg_concat\n"
+            "   la $a1, .arg_concat\n"
+            "   lw $a2, -4($s1)\n"
+            "   jal concat\n"
+            "   la $a0, .arg_concat\n"
+            "   la $a1, .arg_concat\n"
+            "   la $a2, .single_space\n"
+            "   jal concat\n"
+            // "   lw $a0, -4($s1)\n"
+            // "   li $v0, 4\n"
+            // "   syscall\n"
+            "   lw $t0, 0($sp)\n"
+            "   lw $t1, 4($sp)\n"
+            "   lw $t2, 8($sp)\n"
+            "   lw $t3, 12($sp)\n"
+            "   lw $t4, 16($sp)\n"
+            "   addi $sp, $sp, 20\n"
+            
+            "   addi $t2, $t2, 4 # avancer dans .argv\n"
+            // "   la $a0, .line_feed\n"
+            // "   li $v0, 4\n"
+            // "   syscall\n"
+            "   addi $t3, $t3, 1 # compteur de boucle\n"
+            "   b loop_print_arg\n"
+            "loop_print_arg_end:\n"
+
+            "   la $a0, .arg_concat\n"
+            "   jal strlen\n"
+            "   la $t0, .arg_concat\n"
+            "   add $t0, $t0, $v0\n"
+            "   sub $t0, $t0, 1\n"
+            "   li $t1, 0\n"
+            "   sb $t1, ($t0)\n"
+            // "   lw $a0, .argc\n"
+            // "   li $v0, 1\n"
+            // "   syscall\n"
+            // "   la $t0, .argv\n"
+            // "   lw $a0, ($t0)\n"
+            // "   li $v0, 4\n"
+            // "   syscall\n"
+            // "   la $a0, .line_feed\n"
+            // "   li $v0, 4\n"
+            // "   syscall\n"
+            // "   la $a0, .line_feed\n"
+            // "   li $v0, 4\n"
+            // "   syscall\n"
+            // "   la $a0, .arg_concat\n"
+            // "   li $v0, 4\n"
+            // "   syscall\n"
+            "");
     fprintf(sortie, "# initialisations des variables (premier byte à zéro)\n");
     fprintf(sortie, "   li $t1, 0\n");
     fprintf(sortie, "   la $t2, .empty_string\n");

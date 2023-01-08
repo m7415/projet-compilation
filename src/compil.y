@@ -200,6 +200,13 @@ noreturn void fatal(const char *msg, ...)
         int isempty; // uniquement pour les st, vaut 1 is st est %empty
     } instr_type;
 
+    struct {
+        // 2 listes en correspondances
+        // si ident == qo_list[i] goto list[i] 
+        struct qo_list * qo_list;
+        struct list * list;
+    } lst_cas_type;
+
     int nb_decl_loc; // nombre de variables locales dans une fonction
 }
 
@@ -207,17 +214,17 @@ noreturn void fatal(const char *msg, ...)
 %token KW_ESAC KW_ECHO KW_READ KW_RETURN KW_EXIT KW_LOCAL KW_ELIF KW_ELSE
 %token KW_FI KW_DECLARE KW_TEST KW_EXPR
 %token<str> STRING_DOUBLE_QUOTE STRING_SINGLE_QUOTE MOT IDENTIFIER ACCES_LISTE_TABLEAU
-%token<intval> NUMBER 
+%token<intval> NUMBER
 %token EQUAL NOT_EQUAL
 %token OP_NOT_NULL OP_NULL OP_EQ OP_NEQ OP_GT OP_GE OP_LT OP_LE
 %token LOGIC_NOT LOGIC_AND LOGIC_OR
 %token<op_arithm> PLUS_OU_MOINS FOIS_DIV_MOD
-%token O_PAR C_PAR O_BRACKET C_BRACKET O_CURLY_BRACKET C_CURLY_BRACKET SEMICOLON
+%token O_PAR C_PAR O_BRACKET C_BRACKET O_CURLY_BRACKET C_CURLY_BRACKET SEMICOLON PIPE
 %token DOLLAR
 %token QUESTION_MARK
 %token<str> ACCES_VARIABLE
 %token ACCES_ELEM_TABLEAU
-%token ACCES_ARG
+%token<intval> ACCES_ARG
 %token ACCES_LISTE_ARG
 %token<intval> LAST_FUNC_STATUS
 
@@ -231,6 +238,7 @@ noreturn void fatal(const char *msg, ...)
 %type<operateur1et2> operateur1 operateur2
 %type<op_arithm> opt_plus_ou_moins
 %type<nb_decl_loc> decl_loc
+%type<lst_cas_type> liste_cas
 
 %left '+' '-'
 %left '*' '/' '%'
@@ -509,6 +517,10 @@ les goto qui pointent vers le quad juste après eux
     list_free($<instr_type>9.next);
     qo_list_free($5.qo_list);
 }
+| KW_CASE operande KW_IN G liste_cas M KW_ESAC {
+
+    $$.next = NULL;
+}
 | KW_ECHO liste_operandes {
     struct entry * tmp = NULL;
     struct quadop id_tmp;
@@ -636,12 +648,29 @@ G: %empty {
     gencode(quad_goto_unknown());
 }
 
-/*
-else_part
-: KW_ELIF test_bloc KW_THEN liste_instructions else_part {}
-| KW_ELSE liste_instructions {}
-| %empty {}
-;*/
+liste_cas
+: liste_cas filtre C_PAR liste_instructions SEMICOLON SEMICOLON {
+
+}
+| filtre C_PAR liste_instructions SEMICOLON SEMICOLON {
+
+}
+
+filtre
+: MOT
+| IDENTIFIER
+| STRING_DOUBLE_QUOTE
+| STRING_SINGLE_QUOTE
+| filtre PIPE MOT
+| filtre PIPE IDENTIFIER
+| filtre PIPE STRING_DOUBLE_QUOTE
+| filtre PIPE STRING_SINGLE_QUOTE
+| FOIS_DIV_MOD {
+    if($1 != op_mul) {
+        fatal("syntax error on case\n");
+    }
+}
+
 
 concatenation
 : concatenation operande {
@@ -905,9 +934,22 @@ operande
     // print_quadop($$.res);
     // printf("\n");
 }
-| ACCES_ARG {}
-| ACCES_LISTE_ARG {}
-| LAST_FUNC_STATUS {}
+| ACCES_ARG {
+    DEBUG printf("acces arg %i\n", $1);
+    struct entry * e = new_temp(NULL);
+    struct quadop ident = quadop_ident(e->name);
+    newname(ctx_stack, e);
+    newname(liste_symbole, e);
+    gencode(quad_declare(ident));
+    gencode(quad_arg_glob(ident, quadop_cst($1)));
+    $$.res = ident;
+}
+| ACCES_LISTE_ARG {
+    $$.res = quadop_ident(".arg_concat");
+}
+| LAST_FUNC_STATUS {
+    $$.res = quadop_ident(".last_func_return");
+}
 | STRING_DOUBLE_QUOTE {
     $$.res = quadop_cst_string($1);
 }
@@ -1029,7 +1071,19 @@ operande_entier
     }
     $$.res = id_tmp;
 } 
-| opt_plus_ou_moins ACCES_ARG {}
+| opt_plus_ou_moins ACCES_ARG {
+    //DEBUG printf("acces arg %i\n", $2);
+    struct entry * e = new_temp(NULL);
+    struct quadop ident = quadop_ident(e->name);
+    newname(ctx_stack, e);
+    newname(liste_symbole, e);
+    gencode(quad_declare(ident));
+    gencode(quad_arg_glob(ident, quadop_cst($2)));
+    if($1 == op_sub) {
+        gencode(quad_inv_signe(ident, ident));
+    }
+    $$.res = ident;
+}
 | opt_plus_ou_moins MOT { 
     if( is_numeric($2) == 0 ) {
         fatal("Erreur : valeur constante non convertissable en entier : '%s'\n", $1);

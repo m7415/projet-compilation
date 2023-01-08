@@ -18,6 +18,12 @@
 #ifndef SYMB_LAST_FUNC_RETURN
 #define SYMB_LAST_FUNC_RETURN ".last_func_return"
 #endif
+#ifndef SYMB_ARGC
+#define SYMB_ARGC ".argc"
+#endif
+#ifndef SYMB_ARGV
+#define SYMB_ARGV ".argv"
+#endif
 
 
 // un objet pour contenir les infos

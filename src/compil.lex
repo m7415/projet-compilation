@@ -73,6 +73,7 @@ expr    { return KW_EXPR    ;}
     yylval.op_arithm = op_mod;
     return FOIS_DIV_MOD ;
 }
+"|"   { return PIPE ;}
 "["   { return O_BRACKET ;}
 "]"   { return C_BRACKET ;}
 "{"   { return O_CURLY_BRACKET ;}
@@ -129,6 +130,7 @@ expr    { return KW_EXPR    ;}
 
 \$[0-9]+ {
     // printf("accès argument : ( %s )\n", yytext);
+    yylval.intval = atoi(yytext+1)-1;
     return ACCES_ARG;
 }
 \$\* {
