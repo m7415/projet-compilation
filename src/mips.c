@@ -179,6 +179,31 @@ int handle_quad(struct file_asm * f, struct quad q, int i) {
             free(temp2);
             free(temp3);
             break;
+                    case Q_IFNULL_STR:
+            temp1 = handle_quadop(f, q.op1);
+            temp2 = handle_quadop(f, q.res);
+            ecrit  = fprintf(f->sortie, 
+                             "   la $a0, %s\n"
+                             "   la $a1, .empty_string\n"
+                             "   jal compare\n"
+                             "   beq $v0, 0, %s\n", 
+                             temp1, temp2);
+            free(temp1);
+            free(temp2);
+            break;
+        case Q_IFNOTNULL_STR:
+            temp1 = handle_quadop(f, q.op1);
+            temp2 = handle_quadop(f, q.res);
+            ecrit  = fprintf(f->sortie, 
+                             "   la $a0, %s\n"
+                             "   la $a1, .empty_string\n"
+                             "   jal compare\n"
+                             "   bne $v0, 0, %s\n", 
+                             temp1, temp2);
+            free(temp1);
+            free(temp2);
+            break;
+
         case Q_GOTO:
             if(q.res.kind != QO_CST_STRING ) {
                 temp1 = handle_quadop(f,q.res);
@@ -218,28 +243,62 @@ int handle_quad(struct file_asm * f, struct quad q, int i) {
                              "   la $a0, %s\n"
                              "   jal convert_entier # conversion index\n"
                              "   move $s0, $v0 # stockage\n"
+                             "   la $a0, .empty_string\n"
+                             "   move $a1, $s0 # en cas d'erreur\n"
                              "   blt $s0, 0, erreur_out_of_range\n"
                              "   bge $s0, %i, erreur_out_of_range\n"
                              "   mul $s0, $s0, 4 # pour l'addresse dans le tableau\n"
-                             "   la $a0, $s0(%s)\n"
-                             "   la $a1, %s\n"
-                             "   la $a2, .empty_string\n"
-                             "   jal concat\n"
+                             "   la $a0, %s # copy_string\n"
+                             "   jal copy_string\n"
+                             "   move $s2, $v0 # on stocke $s2 dans le tableau\n" 
+                             "   la $t0, %s\n"
+                             "   add $t0, $t0, $s0\n"
+                             "   sw $s2, ($t0)\n"
                              "   # ----\n",
                              temp3,temp1,temp2,
                              temp1,
                              q.data.taille,
-                             temp3,
-                             temp2);
+                             temp2,
+                             temp3);
             free(temp1);
             free(temp2);
             free(temp3);
             break;
         case Q_GET_TAB:
-            // ecrit = fprintf(f->sortie,
-            //                 "   li $v0, 10\n"
-            //                 "   syscall\n"
-            //                 );
+            temp1 = handle_quadop(f,q.op1); // ident tab
+            temp2 = handle_quadop(f,q.op2); // idx tab
+            temp3 = handle_quadop(f,q.res); // ident à modifier
+            ecrit  = fprintf(f->sortie, 
+                             "   # %s <- %s[%s]\n"
+                             "   la $a0, %s\n"
+                             "   jal convert_entier # conversion index\n"
+                             "   move $s0, $v0 # stockage\n"
+                             "   la $a0, .empty_string\n"
+                             "   move $a1, $s0 # en cas d'erreur\n"
+                             "   blt $s0, 0, erreur_out_of_range\n"
+                             "   bge $s0, %i, erreur_out_of_range\n"
+                             "   mul $s0, $s0, 4 # pour l'addresse dans le tableau\n"
+                             "   la $t0, %s\n"
+                             "   add $t0, $t0, $s0\n"
+                            //  "   la $a0, %s\n"
+                            //  "   move $a1, $t0\n"
+                            //  "   la $a2, .empty_string\n"
+                            //  "   jal concat\n"
+                             "   # la $t1, %s\n"
+                             "   lw $a1, ($t0)\n"
+                             "   la $a0, %s\n"
+                             "   la $a2, .empty_string\n"
+                             "   jal concat\n"
+                             "   # ----\n",
+                             temp3,temp1,temp2,
+                             temp2,
+                             q.data.taille,
+                             temp1,
+                             temp1,
+                             temp3);
+            free(temp1);
+            free(temp2);
+            free(temp3);
             break;
         case Q_CONCAT:
             temp1 = handle_quadop(f, q.op1);
@@ -276,8 +335,17 @@ int handle_quad(struct file_asm * f, struct quad q, int i) {
                                        q.op1.ident,4*q.op2.cst, q.op2.cst);
 
             f->pos_main += shift_write(f, f->pos_main,
-                                       "# initialisation du tableau %s\n",
+                                       "# initialisation du tableau %s\n"
+                                       "   la $t0, %s\n"
+                                       "",
+                                       q.op1.ident,
                                        q.op1.ident);
+            for(int i=0; i < q.op2.cst; i++) {
+                f->pos_main += shift_write(f, f->pos_main,
+                                       "   sw $t2 ($t0)\n"
+                                       "   addi $t0, $t0, 4\n"
+                                       );
+            }
             break;
         case Q_IFEQ:
             temp1 = handle_quadop(f, q.op1);
@@ -289,7 +357,7 @@ int handle_quad(struct file_asm * f, struct quad q, int i) {
                              "   move $a1, $v0\n"
                              "   la $a0, %s\n"
                              "   jal convert_entier\n"
-                             "   beq $v0, $a1, %s\n",
+                             "   beq $a1, $v0, %s\n",
                              temp1, temp2,temp3);
             free(temp1);
             free(temp2);
@@ -305,7 +373,7 @@ int handle_quad(struct file_asm * f, struct quad q, int i) {
                              "   move $a1, $v0\n"
                              "   la $a0, %s\n"
                              "   jal convert_entier\n"
-                             "   bne $v0, $a1, %s\n",
+                             "   bne $a1, $v0, %s\n",
                              temp1, temp2,temp3);
             free(temp1);
             free(temp2);
@@ -321,7 +389,7 @@ int handle_quad(struct file_asm * f, struct quad q, int i) {
                              "   move $a1, $v0\n"
                              "   la $a0, %s\n"
                              "   jal convert_entier\n"
-                             "   bgt $v0, $a1, %s\n",
+                             "   bgt $a1, $v0, %s\n",
                              temp1, temp2,temp3);
             free(temp1);
             free(temp2);
@@ -337,7 +405,7 @@ int handle_quad(struct file_asm * f, struct quad q, int i) {
                              "   move $a1, $v0\n"
                              "   la $a0, %s\n"
                              "   jal convert_entier\n"
-                             "   bge $v0, $a1, %s\n",
+                             "   bge $a1, $v0, %s\n",
                              temp1, temp2,temp3);
             free(temp1);
             free(temp2);
@@ -353,7 +421,7 @@ int handle_quad(struct file_asm * f, struct quad q, int i) {
                              "   move $a1, $v0\n"
                              "   la $a0, %s\n"
                              "   jal convert_entier\n"
-                             "   blt $v0, $a1, %s\n",
+                             "   blt $a1, $v0, %s\n",
                              temp1, temp2,temp3);
             free(temp1);
             free(temp2);
@@ -369,7 +437,7 @@ int handle_quad(struct file_asm * f, struct quad q, int i) {
                              "   move $a1, $v0\n"
                              "   la $a0, %s\n"
                              "   jal convert_entier\n"
-                             "   ble $v0, $a1, %s\n",
+                             "   ble $a1, $v0, %s\n",
                              temp1, temp2,temp3);
             free(temp1);
             free(temp2);
@@ -511,6 +579,8 @@ int handle_quad(struct file_asm * f, struct quad q, int i) {
             exit(1);
             break;
     }
+    if(ecrit != 0)
+        shift_write(f, ftell(f->sortie) - ecrit, "# quad %i\n", i);
     f->table_addr[i] = ftell(f->sortie) - ecrit;
     return 0;
 }
@@ -536,6 +606,7 @@ int trad_mips(FILE * sortie,struct quad* quad_table, int nextquad /*+ table des 
     fprintf(sortie, ".globl main\n\nmain:\n");
     fprintf(sortie, "# initialisations des variables (premier byte à zéro)\n");
     fprintf(sortie, "   li $t1, 0\n");
+    fprintf(sortie, "   la $t2, .empty_string\n");
     f.pos_main = ftell(sortie);
     f.pos_initiale_main = f.pos_main;
     fprintf(sortie,"# fin des initialisations ----\n\n");
@@ -566,6 +637,8 @@ int trad_mips(FILE * sortie,struct quad* quad_table, int nextquad /*+ table des 
         }
     }
     free(chaine);
+    free(f.table_addr);
+    free(f.table_label);
     
 
     return 0;
