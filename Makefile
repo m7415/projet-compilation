@@ -82,6 +82,7 @@ INCLUDEARG:=-I$(INCLUDEDIR) -I. -I$(GENERATEDSRCDIR) -I$(TESTDIR)
 $(BINDIR)/$(exec): $(OBJECT_BISON) $(OBJECT_FLEX) $(OBJECTS_WO_TEST) $(MAIN_COMPIL_C)
 	@mkdir -p $(BINDIR)
 	gcc -o $@  $^ $(INCLUDEARG) $(ARGS) $(LDLIBS) 
+	cp $@ $(BINDIR)/sos
 
 
 # on demande juste les .o du compilateur
