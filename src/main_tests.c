@@ -15,21 +15,21 @@ int main() {
   if(lexical_test() == 0){
     printf("Passed !\n");
   }else{
-    //
+    printf("Error in the test\n");
   }
 
   printf("\nTest 2 : analyseur syntaxique\n");
   if(syntax_test() == 0){
     printf("Passed !\n");
   }else{
-    //
+    printf("Error in the test\n");
   }
 
   printf("\nTest 3 : génération mips\n");
   if(mips_test() == 0){
     printf("Passed !\n");
   }else{
-    //
+    printf("Error in the test\n");
   }
 
   return 0;

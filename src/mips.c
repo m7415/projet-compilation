@@ -290,6 +290,7 @@ int handle_quad(struct file_asm * f, struct quad q, int i) {
                             temp1,
                             q.data.taille,
                             temp3);
+            free(temp1);
             free(temp3);
             break;
         case Q_SET:

@@ -3,8 +3,9 @@
 #include "compil.yy.h"
 #include "compil.tab.h"
 
-#define NB_TESTS 16
-#define NB_TESTS_TESTES 14
+#include "table_symb.h"
+
+#define NB_TESTS 22
 
 extern int nextquad;
 
@@ -29,15 +30,19 @@ int mips_test(){
         "test_while",
         "test_str_cond",
         "test_for",
-        "test_tab"
+        "test_tab",
+        "test_arg_glob",
+        "test_case",
+        "test_exple_sujet_2",
+        "test_read",
+        "test_tab_2",
+        "test_tab_3"
     };
-
-    int i = 0;
 
     char namefile[MAX_BUFFER_SIZE];
     char namefile_out[MAX_BUFFER_SIZE];
     char namefile_out_quads[MAX_BUFFER_SIZE];
-    for (int i = 0; i < NB_TESTS_TESTES; i++)
+    for (int i = 0; i < NB_TESTS; i++)
     {
         snprintf(namefile,MAX_BUFFER_SIZE,"./tests/in/%s.sh",filenames[i]);
         snprintf(namefile_out,MAX_BUFFER_SIZE,"./tests/out/%s_out.asm",filenames[i]);
@@ -58,12 +63,7 @@ int mips_test(){
             return 1;
         }
 
-        int t = yyparse();
-        
-        if(t != 0){
-            printf("FUCK !\n");
-            return 1;
-        }
+        yyparse();
 
         for(int i=0; i<nextquad; i++) {
             fprintf(sortie_quads, "%-3i: ", i);
@@ -72,7 +72,6 @@ int mips_test(){
 
         fclose(sortie_quads);
         
-        // Traduction en MIPS
         if (trad_mips(sortie,global_code,nextquad) == 0) {
             printf("La traduction de %s à réussie !\n",filenames[i]);
             } else {
@@ -80,11 +79,11 @@ int mips_test(){
         }
 
         nextquad = 0;
-        // free_ctx_stack(liste_symbole,1);
         yyrestart(yyin);
     }
 
     fclose(yyin);
-    // free_ctx_stack(liste_symbole,1);
+    free_ctx_stack(liste_symbole,0);
+
     return 0;
 }

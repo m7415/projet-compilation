@@ -1,15 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-
 #include "syntax_test.h"
 #include "quads.h"
-// Inclure les en-têtes générés par Bison pour utiliser les fonctions de l'analyseur syntaxique
 #include "compil.yy.h"
 #include "compil.tab.h"
+#include "table_symb.h"
 
 
-#define NB_TESTS 16
+#define NB_TESTS 22
 #define MAX_BUFFER_SIZE 1024
 
 extern int nextquad;
@@ -32,41 +31,41 @@ int syntax_test() {
     "./tests/in/test1.sh",
     "./tests/in/test2.sh",
     "./tests/in/test3.sh",
-    "./tests/in/test4.sh"
+    "./tests/in/test4.sh",
+    "./tests/in/test_arg_glob.sh",
+    "./tests/in/test_case.sh",
+    "./tests/in/test_exple_sujet_2.sh",
+    "./tests/in/test_read.sh",
+    "./tests/in/test_tab_2.sh",
+    "./tests/in/test_tab_3.sh"
   };
 
   int passed = 0;
 
   for (size_t i = 0; i < NB_TESTS; i++)
   {
-    // Ouvrir le fichier de test
+
     yyin = fopen(filenames[i], "r");
     if (yyin == NULL) {
       fprintf(stderr, "Error: unable to open input file %s\n",filenames[i]);
       return 1;
     }
-    /* char c;
-    while((c=fgetc(yyin))!=EOF){
-        printf("%c",c);
-    } */
 
-    // Utiliser l'analyseur syntaxique pour analyser la chaîne
     int result = yyparse();
-    // free_ctx_stack(liste_symbole,1);
+
     nextquad=0;
     yyrestart(yyin);
 
-    // Check the result of the parse
     if (result == 0) {
-      printf("L'analyse numero %ld à réussie !\n",i);
+      printf("L'analyse de %s à réussie !\n",filenames[i]);
     } else {
-      printf("L'analyse numero %ld à échoué.\n",i);
+      printf("L'analyse de %s à échoué.\n",filenames[i]);
       passed = 1;
     }
 
   }
   fclose(yyin);
-  // free_ctx_stack(liste_symbole,1);
-  // yylex_destroy();
+  free_ctx_stack(liste_symbole,0);
+
   return passed;
 }
