@@ -4,10 +4,9 @@
 #include <sys/types.h>
 #include <stdio.h>
 #include <string.h>
-// #include "../generated-src/compil.tab.h"
 
 #define MAX_IDENT_SIZE 32 // 32 caractères pour un identificateur (y compris le \0 final)
-#define MAX_STRING_SIZE 1024 // taille des chaines jsp
+#define MAX_STRING_SIZE 1024 // taille max des chaines
 
 enum quadop_kind { 
     QO_CST,        // .cst
@@ -114,7 +113,6 @@ struct quad quad_inv_signe(struct quadop res, struct quadop op1);
 
 struct quad quad_goto(struct quadop addr);
 struct quad quad_goto_unknown();
-// struct quad quad_goto_label(struct quadop label);
 struct quad quad_bidon(int v);
 struct quad quad_bidon2(int v);
 struct quad quad_set(struct quadop ident, struct quadop val);

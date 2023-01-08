@@ -1,14 +1,14 @@
 #include "table_symb.h"
 
+
+// seul ctx_stack est accessible à l'utilisateur pour encapsuler
+// en interne, c'est simplement une liste chainée de contextes
+
+
 struct ctx {
     struct entry * entries[MAX_SYMB_IN_CTX]; 
     int nb_entry; // nombre de symboles
 };
-
-// struct entry {
-//     enum entry_type type;
-//     char name[MAX_IDENT_SIZE];
-// };
 
 struct stack_interne {
     struct ctx * current;
@@ -41,7 +41,7 @@ void pushctx(struct ctx_stack * ctx_stack) {
 
 void popctx(struct ctx_stack * ctx_stack, int free_entries) {
     if(ctx_stack->head == NULL) {
-        printf("/!\\popctx mais pas de ctx existant (ne devrait pas arriver si on pop pas trop hihi)\n");
+        printf("/!\\popctx mais pas de ctx existant (ne devrait pas arriver si on pop pas trop)\n");
         return;
     }
     struct ctx * current_ctx = ctx_stack->head->current;
@@ -102,7 +102,7 @@ void free_ctx_stack(struct ctx_stack * ctx_stack, int free_entries) {
 
 void print_entry(struct entry * e) {
     if(e == NULL) {
-        printf("faut pas demander de print_entry(NULL) >:(\n");
+        printf("erreur : print_entry(NULL)\n");
         return;
     }
     switch(e->type) {

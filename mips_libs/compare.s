@@ -27,10 +27,10 @@ compare:
 
     move $a0, $s0
     jal strlen
-    move $s2, $v0 # length of str1
+    move $s2, $v0 # taille de str1
     move $a0, $s1
     jal strlen
-    move $s3, $v0 # length of str2
+    move $s3, $v0 # taille de str2
 
     bne $s2, $s3, compare_diff # si tailles différentes, différent
 

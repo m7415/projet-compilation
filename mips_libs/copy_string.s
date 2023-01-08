@@ -10,7 +10,6 @@ copy_string:
 # retour :
 # $v0 l'adresse d'un nouveau string identique à $a0
 
-
     sub $sp, $sp, 36 # faire de l'espace dans le stack pour sauvegarder les registres
     sw $ra, 0($sp) # sauvegarder $ra, $s0-7
     sw $s0, 4($sp) 
@@ -28,7 +27,7 @@ copy_string:
     move $s1, $v0
 
     li $v0, 9 # sbrk
-    addi $a0, $s1, 1 # +1
+    addi $a0, $s1, 1 # +1 pour \0
 
     syscall
     move $s2, $v0 # adresse du nveau string

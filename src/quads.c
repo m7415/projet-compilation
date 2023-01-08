@@ -1,5 +1,9 @@
 #include "quads.h"
 
+// si PRINTTYPES est défini, alors les qo seront print avec une indication pour donner leur type
+// sinon, il sont simplement affichés
+// #define PRINTTYPES
+
 void print_quad(struct quad q, FILE * file_) {
     FILE * file;
     if(file_ == NULL) {
@@ -14,7 +18,6 @@ void print_quad(struct quad q, FILE * file_) {
     }
     else if(q.kind == Q_GOTO_UNKNOWN) {
         fprintf(file,"GOTO ?");
-        // printf("GOTO <addr>?");
     }
     else if(q.kind == Q_GOTO_LABEL) {
         fprintf(file, "GOTO ");
@@ -230,8 +233,6 @@ void print_quad(struct quad q, FILE * file_) {
     }
     fprintf(file, "\n");
 }
-
-// #define PRINTTYPES
 
 void print_quadop(struct quadop op, FILE * file_) {
     FILE * file;

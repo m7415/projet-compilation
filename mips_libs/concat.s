@@ -27,29 +27,11 @@ concat:
     # arguments :
     # a0 : adresse du string où sera stocké le résultat
     # a1 et a2 : adresses des strings à concaténer
-
     # retour :
     # v0 : taille du string résultant (pas forcement utile mais voilà)
     # a0 contient toujours la meme adresse qu'au début, mais maintenant
     #    c'est la concaténation de a1 et a2
-
-    # li $v0, 4
-    # la $a0, strconcat
-    # syscall # concaténaion de :
-    # li $v0, 4
-    # move $a0, $s0
-    # syscall # <arg 1>
-    # li $v0, 4
-    # la $a0, linefeed
-    # syscall # \n
-    # li $v0, 4
-    # move $a0, $s1
-    # syscall # <arg 2>
-    # li $v0, 4
-    # la $a0, linefeed
-    # syscall # \n
-    
-
+   
     sub $sp, $sp, 36 # faire de l'espace dans le stack pour sauvegarder les registres
     sw $ra, 0($sp) # sauvegarder $ra, $s0-7
     sw $s0, 4($sp) 
@@ -61,23 +43,13 @@ concat:
     sw $s6, 28($sp) 
     sw $s7, 32($sp) 
 
-
     move $s0, $a0
     move $s1, $a1
     move $s2, $a2
 
-
-    # sub $sp, $sp, 8 # faire de l'espace dans le stack pour sauvegarder ce qui
-    # # risque de partir avec jal, et dont on se sert
-    # sw $a0, 0($sp)
-    # sw $a1, 4($sp)
     move $a0, $s1
     jal strlen # call strlen sur $a0 (notre premier string)
-    # lw $a0, 0($sp)
-    # lw $a1, 4($sp)
-    # addi $sp, $sp, 8
-    # > sauvegarde pas utile puisqu'on a chargé nos arguments sans $s0 et $s1
-
+    
     li $s3, 0  # initaliser à 0 $s3, qui contiendra la somme des tailles des strings
     add $s3, $s3, $v0 # 
 
@@ -86,7 +58,6 @@ concat:
 
     add $s3, $s3, $v0
 
-    
     move $t0, $s1 # $t0 pointe au début du premier string
     move $t3, $s0 # $t3 pointe au début du string résultat
 concat_loop1:
@@ -107,10 +78,7 @@ concat_loop2:
     addi $t3, $t3, 1
     j concat_loop2
 concat_loop2_end:
-
-    # la $t0, str1
     sb $zero, 0($t3) # bien terminer le résultat
-
 
     move $v0, $s3 # renvoyer $s3 = somme les longueurs des 2 strings
     lw $ra, 0($sp) # restaurer

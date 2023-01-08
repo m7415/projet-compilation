@@ -8,9 +8,10 @@ while test a = b do
         if test e!=f then
             echo "if dans while dans while";
             echo "2e instr"
-        fi;
-        echo "fin while dans while"
+        fi
+        # echo "fin while dans while"
     done
+    # ;echo aaa
 
 done;
 

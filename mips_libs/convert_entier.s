@@ -109,9 +109,6 @@ convert_string_loop_count:
     beq $t0, 0, convert_string_loop_count_end
     b convert_string_loop_count
 convert_string_loop_count_end:
-    # move $a0, $s2
-    # li $v0, 1
-    # syscall
     move $t0, $s0
     add $t1, $s1, $s2
     subi $t1, $t1, 1 # pointeur dans resultat
@@ -128,10 +125,6 @@ convert_string_loop_conv:
     beq $t0,0, convert_string_loop_conv_end
     b convert_string_loop_conv
 convert_string_loop_conv_end:
-    # li $v0, 4
-    # move $a0, $s1
-    # syscall
-
     lw $ra, 0($sp) # restaurer
     lw $s0, 4($sp)
     lw $s1, 8($sp)

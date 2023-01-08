@@ -3,7 +3,7 @@
 .data
     .str_err_pas_entier: .asciiz "Erreur : valeur non convertissable en entier : "
     .str_err_out_of_range_1: .asciiz "Erreur : index out of range ("
-    .str_err_out_of_range_2: .asciiz ") pour le tableau : "
+    .str_err_out_of_range_2: .asciiz ") pour un tableau"
     .linefeed: .asciiz "\n"
 
 .text
@@ -11,9 +11,6 @@
 .globl erreur_out_of_range
 
 erreur_pas_entier:
-    # argument : 
-    # a0 : pointeur vers string
-    # (pas de retour, le programme s'arrete)
     move $t0, $a0
     li $v0, 4
     la $a0, .linefeed
@@ -52,6 +49,8 @@ erreur_out_of_range:
     li $v0, 4
     la $a0, .str_err_out_of_range_2
     syscall
+# on peut malheureusement pas vraiment afficher le nom du tableau fautif
+# on pourrait éventuellement afficher son addresse en mémoire...
     li $v0, 4
     move $a0, $t0
     syscall

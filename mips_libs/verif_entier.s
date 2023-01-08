@@ -1,5 +1,3 @@
-
-
 .text
 .globl verif_entier
 

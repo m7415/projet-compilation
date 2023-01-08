@@ -9,18 +9,13 @@ int shift_write(struct file_asm * f, int position, char *chaine, ...) {
     // R2cupération de la taille du fichier
     fseek(fichier, 0, SEEK_END);
     int taille = ftell(fichier);
-    // printf("taille : %i\n", taille);
 
     // Déplacement à la position spécifiée dans le fichier
     fseek(fichier, position, SEEK_SET);
-    // printf("position : %i %li\n", position, ftell(fichier));
 
     // Lecture de la suite du fichier dans un buffer
     char * buffer = calloc(taille+1,1);
     size_t nb_octets_lus = fread(buffer, 1, taille, fichier);
-    // printf("octets lus pour reste fichier : %lu\n", nb_octets_lus);
-    // printf("buffer[0] int(char) : %i('%c')\n", buffer[0], buffer[0]);
-    // printf("reste du fichier :\n'%s'\n",buffer);
 
     // Écriture de la chaîne de caractères à la position spécifiée dans le fichier
     int r = 0;
@@ -37,6 +32,7 @@ int shift_write(struct file_asm * f, int position, char *chaine, ...) {
     fseek(fichier, pointeur_init+r, SEEK_SET);
     free(buffer);
 
+    // modification des positions enregistrées, si besoin
     if(f->pos_data > position) {
         f->pos_data += r;
     }
@@ -63,7 +59,6 @@ char * new_string(int *numstr) {
     return str;
 }
 
-// char* handle_quadop(struct quadop qo, FILE * sortie,int *pos_data, int *numstr,int *numlab, int* table_label) {
 char* handle_quadop(struct file_asm * f, struct quadop qo) {
     char * mips = malloc(MAX_OP_SIZE);
     char * chaine = malloc(MAX_OP_SIZE);
@@ -105,13 +100,15 @@ char* handle_quadop(struct file_asm * f, struct quadop qo) {
             break;
         default:
             snprintf(mips, MAX_OP_SIZE, "UNKNOWN");
+            fprintf(stderr, "quadop non reconnu\n");
+            // provoquera une erreur à l'exécution
+            // on arrete pas la traduction pour autant
             break;
     }
     free(chaine);
     return mips;
 }
 
-// int handle_quad(int i, struct quad q, FILE * sortie,int *pos_data, int *numstr,int *numlab, int* table_label, int * table_addr) {
 int handle_quad(struct file_asm * f, struct quad q, int i) {
     int ecrit = 0;
     char * temp1;
@@ -119,24 +116,6 @@ int handle_quad(struct file_asm * f, struct quad q, int i) {
     char * temp3;
     switch (q.kind) {
         case Q_ECHO:
-            // switch (q.op1.kind) {
-            //     case QO_CST:
-            //         temp1 = handle_quadop(f, q.op1);
-            //         ecrit = fprintf(f->sortie, "   la $a0, %s\n   li $v0, 1\n   syscall\n", temp1);
-            //         free(temp1);
-            //         break;
-            //     case QO_CST_STRING:
-            //         temp1 = handle_quadop(f, q.op1);
-            //         ecrit = fprintf(f->sortie, "   la $a0, %s\n   li $v0, 4\n   syscall\n", temp1);
-            //         free(temp1);
-            //         break;
-            //     case QO_IDENT:
-            //         /* code */
-            //         break;
-            //     default:
-            //         fprintf(stderr,"ERREUR !\n");
-            //         break;
-            // }
             temp1 = handle_quadop(f, q.op1);
             ecrit = fprintf(f->sortie,
                             "   la $a0, %s\n"
@@ -675,7 +654,9 @@ int handle_quad(struct file_asm * f, struct quad q, int i) {
         default:
             ecrit = fprintf(f->sortie, "   UNKNOWN\n");
             fprintf(stderr, "quad n°%i non reconnu\n", i);
-            exit(1);
+            // exit(1);
+            // provoquera une erreur à l'exécution
+            // on arrete pas la traduction pour autant
             break;
     }
     if(ecrit != 0)
@@ -685,7 +666,7 @@ int handle_quad(struct file_asm * f, struct quad q, int i) {
 }
 
 
-int trad_mips(FILE * sortie,struct quad* quad_table, int nextquad /*+ table des symboles*/){
+int trad_mips(FILE * sortie,struct quad* quad_table, int nextquad){
 
     struct file_asm f;
     f.sortie = sortie;
@@ -782,22 +763,6 @@ int trad_mips(FILE * sortie,struct quad* quad_table, int nextquad /*+ table des 
             "   sub $t0, $t0, 1\n"
             "   li $t1, 0\n"
             "   sb $t1, ($t0)\n"
-            // "   lw $a0, .argc\n"
-            // "   li $v0, 1\n"
-            // "   syscall\n"
-            // "   la $t0, .argv\n"
-            // "   lw $a0, ($t0)\n"
-            // "   li $v0, 4\n"
-            // "   syscall\n"
-            // "   la $a0, .line_feed\n"
-            // "   li $v0, 4\n"
-            // "   syscall\n"
-            // "   la $a0, .line_feed\n"
-            // "   li $v0, 4\n"
-            // "   syscall\n"
-            // "   la $a0, .arg_concat\n"
-            // "   li $v0, 4\n"
-            // "   syscall\n"
             "");
     fprintf(sortie, "# initialisations des variables (premier byte à zéro)\n");
     fprintf(sortie, "   li $t1, 0\n");
@@ -806,6 +771,17 @@ int trad_mips(FILE * sortie,struct quad* quad_table, int nextquad /*+ table des 
     f.pos_initiale_main = f.pos_main;
     fprintf(sortie,"# fin des initialisations ----\n\n");
 
+/*
+table_addr contient la position du premier caractère dans le fichier mips
+correspondant au i-eme quad.
+
+table_label contient le numéro du label permettant d'accéder au i-eme quad en mips
+(si -1, c'est qu'il n'y a pas de label à cet endroit)
+
+on écrit tout notre programme, puis grace à shift_write on insère les labels là où il faut
+
+rq : tout nos labels générés sont nommés _l%i
+*/
     f.table_label = malloc(nextquad*sizeof(int));
     for (int i = 0; i < nextquad; i++)
     {
@@ -834,7 +810,5 @@ int trad_mips(FILE * sortie,struct quad* quad_table, int nextquad /*+ table des 
     free(chaine);
     free(f.table_addr);
     free(f.table_label);
-    
-
     return 0;
 }

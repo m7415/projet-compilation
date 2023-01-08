@@ -4,9 +4,6 @@
 
 struct list * list_concat(struct list * l1, struct list * l2) {
     if(l1 == NULL) return l2;
-    // if(l2 == NULL) return l1;
-    // l1->next = list_concat(l1->next,l2);
-    // l1->next = l2;
     struct list * next = l1;
     while(next->next != NULL) {
         next = next->next;
@@ -23,22 +20,6 @@ struct list * list_creer(size_t addr) {
     return newl;
 }
 
-// struct list * list_add(struct list * liste, size_t addr) {
-//     struct list * newl = list_creer(addr);
-//     return list_concat(liste, newl);
-// }
-
-
-// struct list * list_copy(struct list * l) {
-//     // if( l == NULL) {
-//     //     return NULL;
-//     // }
-//     // struct list * newl = list_creer(l->addr);
-//     // return concat()
-//     return NULL; //TODO ?
-// }
-
-
 void list_print(struct list * l) {
     if( l == NULL ) {
         printf("empty list");
@@ -51,7 +32,6 @@ void list_print(struct list * l) {
         next = next->next;
     }
 }
-
 
 void list_free(struct list * l) {
     if(l == NULL) {

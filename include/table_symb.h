@@ -22,7 +22,6 @@ struct entry {
     enum entry_type type;
     char name[MAX_IDENT_SIZE];
     union { // données en plus, si besoin
-        // TODO : virer les struct inutiles (avec un seul element)
         struct { // E_TAB
             int taille;
         };
