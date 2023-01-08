@@ -1,0 +1,22 @@
+#!/bin/bash
+#https://courses.missouristate.edu/kenvollmar/mars/Help/Help_4_1/MarsHelpCommand.html
+
+
+# petite bidouille pour pouvoir appeler depuis n'importe où
+# en ne mettant en argument que main.s (et pas mips_libs/main.s)
+curr_path=$(dirname $0)
+a=()
+b=()
+for d in "$@"; do
+    tmp=$(echo -n $d | tail -c2)
+    # echo $tmp;
+    if [ $tmp == .s ]; then
+        a+=( "$curr_path/$d" )
+    else
+        b+=( "$d" )
+    fi
+done
+
+
+java -jar $curr_path/Mars4_5.jar ${a[@]} ${b[@]}
+
