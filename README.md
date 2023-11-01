@@ -1,6 +1,6 @@
 # Projet Compilation
 
-Bienvenue dans le repository de mon compilateur ! Ce compilateur a été développé dans le cadre de mon projet de fin d'études et vise à compiler un langage de programmation simplifié en code exécutable.
+Ce compilateur a été développé dans le cadre d'un projet du master SDSC, et vise à compiler un langage de programmation simplifié en code exécutable.
 
 ## Fonctionnalités
 
@@ -29,11 +29,3 @@ Pour utiliser ce compilateur, suivez les étapes suivantes :
 ## Tests
 
 Pour vérifier le bon fonctionnement du compilateur, vous pouvez exécuter les tests en utilisant la commande `make tests`. Cela exécutera une série de tests qui vérifieront les différentes fonctionnalités du compilateur.
-
-## Contribution
-
-Si vous souhaitez contribuer au développement de ce compilateur, n'hésitez pas à ouvrir une pull request avec vos modifications. Toute contribution est la bienvenue !
-
-## Licence
-
-Ce compilateur est sous licence MIT. Vous pouvez utiliser, modifier et distribuer ce compilateur à condition de respecter les termes de cette licence. Consultez le fichier [LICENSE](LICENSE) pour plus de détails.
