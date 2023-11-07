@@ -19,7 +19,7 @@ Pour utiliser ce compilateur, vous aurez besoin de :
 
 ## Installation
 
-Pour utiliser ce compilateur, suivez les étapes suivantes :
+Pour utiliser ce compilateur, suivez les étapes suivantes : 
 
 1. Clonez ce repository sur votre ordinateur en utilisant la commande `git clone https://github.com/mon_utilisateur/mon_compilateur.git`
 2. Accédez au répertoire du compilateur en utilisant la commande `cd mon_compilateur`
